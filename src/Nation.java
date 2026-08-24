@@ -33,4 +33,28 @@ public class Nation{
     }
 
 
+
+
+    
+
+
+    //Getter
+    public String getName(){
+        return name;
+    }
+
+    public Color getColor(){
+        return color;
+    }
+
+    //Setter
+    public void setName(String newName){
+        this.name = newName;
+    }
+
+    public void setColor(Color newColor){
+        this.color = newColor;
+    }
+
+
 }

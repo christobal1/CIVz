@@ -9,11 +9,11 @@ public class Main{
     public static int numCols = 40;
     public static int numHotBarItems = 5;
 
-    static JLabel[][] visualWorldMap = new JLabel[numRows][numCols];
+    static JButton[][] visualWorldMap = new JButton[numRows][numCols];
     static JLabel[] hotBar = new JLabel[numHotBarItems];
 
     public static void main(String[] args){
-        //Logic.writeMap();
+        Logic.writeMap();
         Graphics.graphicSetup(numRows, numCols, numHotBarItems, visualWorldMap);
         Logic.completeWorldMapReset(visualWorldMap);
 
@@ -23,7 +23,7 @@ public class Main{
 
 
 
-        Graphics.testFill(visualWorldMap, numRows, numCols);
-        Graphics.testBlink(visualWorldMap, numRows, numCols);
+        //Graphics.testFill(visualWorldMap, numRows, numCols);
+        //Graphics.testBlink(visualWorldMap, numRows, numCols);
     }
 }

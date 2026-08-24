@@ -3,7 +3,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
-import javax.swing.JLabel;
+import javax.swing.*;
 
 public class Logic{
     
@@ -11,7 +11,7 @@ public class Logic{
 
 
     //Create the nations, their "owned field array" and "start field"
-    public static void createNations(JLabel[][] visualWorldMap){
+    public static void createNations(JButton[][] visualWorldMap){
 
         ArrayList<Field> n1Fields = new ArrayList<>();
         Nation n1 = new Nation("Coolistan", n1Fields, Color.RED);
@@ -37,7 +37,7 @@ public class Logic{
 
     //Reads all Field information from the Map.txt
     //INFO: fType is fieldType form Field.java
-    public static void completeWorldMapReset(JLabel[][] visualWorldMap){
+    public static void completeWorldMapReset(JButton[][] visualWorldMap){
 
         try (Scanner myReader = new Scanner(Main.map)){
             while(myReader.hasNext()){
@@ -85,18 +85,22 @@ public class Logic{
 
 
 
-    //Changes information of one square, like a setter
-    //Only changes visual aspect, owner has to be set seperatly for now!!!
-    public static void changeOneSquareOnWorldMap(JLabel[][] visualWorldMap, int x, int y, Field.FieldType fType){
+    //Changes information of one square
+    //Meant for map & terrain building
+    //Because no owner set, only field type (fType)
+    public static void changeOneSquareOnWorldMap(JButton[][] visualWorldMap, int x, int y, Field.FieldType fType){
 
         worldMap[x][y].fType = fType; //does this work ???
         Graphics.synchronizeVisual(visualWorldMap, x, y, fType);
     }
 
 
-
-
-    public static void changeFieldOwner(JLabel[][] visualWorldMap, int x, int y, Nation newOwner){
+    //Changes information of one square
+    //Meant for changing of ownership after fight
+    //Not for map & terrain building
+    //Doesnt go into synchronizeVisual, because that method is meant for map building currently
+    //Goes through changeSquareColor directly. Similar mechanism, just slightly different.
+    public static void changeFieldOwner(JButton[][] visualWorldMap, int x, int y, Nation newOwner){
 
         Field field = worldMap[x][y];
 
@@ -114,6 +118,14 @@ public class Logic{
 
 
 
+    //Field Logic
+    //Info shown when click on fields
+    //The Event Listeners in Graphics.java use this method
+    //Is it weird to have this method? Maybe there's a better way ?
+    public static String matchVisualCoordsToRealCoords(int x, int y){
+
+        return worldMap[x][y].getFieldInfo();
+    }
 
 
 
@@ -122,7 +134,6 @@ public class Logic{
 
 
 
-    
     //Attacks square based on search
     public void attack(){
 
@@ -165,6 +176,7 @@ public class Logic{
                 for(int j=0; j<Main.numCols; j++){
                     int randomPop = (int)(Math.random() * 101);
                     double randomMoneyDaily = (double)(Math.random() * 200);
+                    randomMoneyDaily = Math.round((randomMoneyDaily * 100) / 100);
                     
                     if((i == Main.numRows - 1) && (j == Main.numCols - 1)) {
                         myWriter.write(i + " " + j + " " + randomPop + " " + randomMoneyDaily + " " + landTypeCalc(i, j));
