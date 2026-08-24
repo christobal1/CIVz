@@ -68,8 +68,15 @@ public class Graphics {
 
 
     //SYNCHRONIZE worldmap with visual worldmap
-    public void synchronize(){
-        
+    public static void synchronizeVisual(JLabel[][] visualWorldMap, int x, int y, Field.FieldType fType){
+        switch(fType){
+            case NONE:
+                changeSquareColor(visualWorldMap, x, y, Color.LIGHT_GRAY);
+                break;
+            case SEA:
+                changeSquareColor(visualWorldMap, x, y, Color.BLUE);
+                break;
+        }
     }
 
 
