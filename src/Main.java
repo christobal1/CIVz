@@ -13,20 +13,17 @@ public class Main{
     static JLabel[] hotBar = new JLabel[numHotBarItems];
 
     public static void main(String[] args){
-        Logic.writeMap();
+        //Logic.writeMap();
         Graphics.graphicSetup(numRows, numCols, numHotBarItems, visualWorldMap);
         Logic.completeWorldMapReset(visualWorldMap);
 
-        //Graphics.testFill(worldmap, numRows, numCols);
-        //Graphics.testBlink(worldmap, numRows, numCols);
-
-        
+        Logic.createNations(visualWorldMap);
 
 
 
 
 
-
-        
+        Graphics.testFill(visualWorldMap, numRows, numCols);
+        Graphics.testBlink(visualWorldMap, numRows, numCols);
     }
 }

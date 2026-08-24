@@ -111,6 +111,18 @@ public class Logic{
     }
 
 
+
+
+
+
+
+
+
+
+
+
+
+    
     //Attacks square based on search
     public void attack(){
 
