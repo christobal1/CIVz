@@ -21,7 +21,14 @@ public class Graphics{
                 settingsButton.addActionListener(new java.awt.event.ActionListener() {
                     @Override
                     public void actionPerformed(java.awt.event.ActionEvent evt){
-                        JOptionPane.showMessageDialog(null, "Hi");
+                        String[] options = {"Option1", "Option2"};
+                        int choice = JOptionPane.showOptionDialog(null,
+                            "Choose",
+                            "Title",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.INFORMATION_MESSAGE,
+                            null, options,
+                            options);
                     }
                 });
 
@@ -61,7 +68,7 @@ public class Graphics{
                 squareButton.addActionListener(new java.awt.event.ActionListener(){
                     @Override
                     public void actionPerformed(java.awt.event.ActionEvent evt){
-                        String msg = Logic.matchVisualCoordsToRealCoords(x, y);
+                        String msg = Logic.matchVisualCoordsToRealCoords(x, y); //Use of Logic.java in Graphics.java
                         JOptionPane.showMessageDialog(null, msg);
                     }
                 });
@@ -75,6 +82,7 @@ public class Graphics{
         //frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+
     }
 
 
@@ -95,15 +103,6 @@ public class Graphics{
         }
     }
 
-
-    //Button Events
-    public void buttonEvent(){
-        
-    }
-
-    public void squareClickEvent(){
-
-    }
 
 
 

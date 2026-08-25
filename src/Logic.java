@@ -10,6 +10,14 @@ public class Logic{
     public static Field[][] worldMap = new Field[Main.numRows][Main.numCols];
 
 
+    
+    public static void startGame(JButton[][] visualWorldMap){
+
+        createNations(visualWorldMap);
+
+    }
+
+
     //Create the nations, their "owned field array" and "start field"
     public static void createNations(JButton[][] visualWorldMap){
 
@@ -29,14 +37,14 @@ public class Logic{
         int n2StartY = 39;
         changeFieldOwner(visualWorldMap, n2StartX, n2StartY, n2);
 
-        
+        makeMove(n1);
 
     }
 
 
 
     //Reads all Field information from the Map.txt
-    //INFO: fType is fieldType form Field.java
+    //INFO: fType is fieldType from Field.java
     public static void completeWorldMapReset(JButton[][] visualWorldMap){
 
         try (Scanner myReader = new Scanner(Main.map)){
@@ -87,7 +95,7 @@ public class Logic{
 
     //Changes information of one square
     //Meant for map & terrain building
-    //Because no owner set, only field type (fType)
+    //Because no owner will be set, only field type (fType)
     public static void changeOneSquareOnWorldMap(JButton[][] visualWorldMap, int x, int y, Field.FieldType fType){
 
         worldMap[x][y].fType = fType; //does this work ???
@@ -98,8 +106,8 @@ public class Logic{
     //Changes information of one square
     //Meant for changing of ownership after fight
     //Not for map & terrain building
-    //Doesnt go into synchronizeVisual, because that method is meant for map building currently
-    //Goes through changeSquareColor directly. Similar mechanism, just slightly different.
+    //Doesnt go into synchronizeVisual, because that method is currently meant for map building
+    //Goes through changeSquareColor directly. Similar mechanism
     public static void changeFieldOwner(JButton[][] visualWorldMap, int x, int y, Nation newOwner){
 
         Field field = worldMap[x][y];
@@ -134,26 +142,135 @@ public class Logic{
 
 
 
-    //Attacks square based on search
-    public void attack(){
+
+
+    //move to other square based on search
+    public static void makeMove(Nation n){
+        searchNextSquare(n);
 
     }
 
-    //Search next best square to attack based on surrounding squares
-    public void search(){
+
+    //Search next best square to attack based on surrounding fields
+    //Put the coordinates of the surrounding fields in a 3d array
+    //After that rank them and sort some out according to legality
+    //An other method will be invoked for this!
+    public static void searchNextSquare(Nation n){
+        int sizeOfOwnedArray = (n.ownedFields).size();
+        int[][][] potentialNextCoords = new int[sizeOfOwnedArray][4][2];
+        int[][][] rankedNextCoords = new int[sizeOfOwnedArray][4][2];
+
+        for(int i=0; i<sizeOfOwnedArray; i++){
+            //Get the coordinates of one of the owned fields
+            Field temp = (n.ownedFields).get(i);
+            int x = temp.getFieldCoordX();
+            int y = temp.getFieldCoordY();
+
+            int northX = x;
+            potentialNextCoords[i][0][0] = northX;
+            int northY = y-1;
+            potentialNextCoords[i][0][1] = northY;
+            
+            int eastX = x-1;
+            potentialNextCoords[i][1][0] = eastX;
+            int eastY = y;
+            potentialNextCoords[i][1][1] = eastY;
+
+            int southX = x;
+            potentialNextCoords[i][2][0] = southX;
+            int southY = y-1;
+            potentialNextCoords[i][2][1] = southY;
+
+            int westX = x+1;
+            potentialNextCoords[i][3][0] = westX;
+            int westY = y;
+            potentialNextCoords[i][3][1] = westY;
+        }
+
+
+
         
-    }
+
+        for(int i=0; i<4; i++){
+            for(int j=0; j<4; j++){
+                if(compareFields(n, potentialNextCoords[0][j][0], potentialNextCoords[0][j][1], potentialNextCoords[0][j+1][0], potentialNextCoords[0][j+1][1]) == 1){
+                    int tempX = potentialNextCoords[0][j][0];
+                    int tempY = potentialNextCoords[0][j][1];
 
 
-    //Check N,E,W,S squares for best choice
-    public void checkSurrounding(){
+                }
+            }
+        }
 
-    }
 
 
-    public void updateInfo(){
         
+
+        for(int i=0; i<sizeOfOwnedArray; i++){
+            for(int j=0; j<4; j++){
+                for(int k=0; k<2; k++){
+                    System.out.print(rankedNextCoords[i][j][k] + " ");
+                }
+                System.out.println();
+            }
+        }
+
+
+
+
+
+
+        int array[] = {1,2,99,5,7,2,9,4};
+
+        for(int i=0; i<(array.length)-1; i++){
+            for(int j=0; j<(array.length)-1; j++){
+                if(array[j] > array[j+1]){
+                    int temp = array[j+1];
+                    array[j+1] = array[j];
+                    array[j] = temp;
+                }
+            }
+        }
+
+        for(int i=0; i<array.length; i++){
+            System.out.print(array[i] + " ");
+        }
     }
+
+    public static int compareFields(Nation n, int x1, int y1, int x2, int y2){
+
+        //Add: If is mine, give rating 0
+
+
+        double money1 = (worldMap[x1][y1]).getDailyMoney();
+        double money2 = (worldMap[x2][y2]).getDailyMoney();
+
+        int pop1 = (worldMap[x1][y1].getPopulation());
+        int pop2 = (worldMap[x2][y2].getPopulation());
+
+        //Add: Better bot decisions maybe by setting focus in Nation playstyle
+        if((money1 > 1.5 * money2) && (pop1 > 10)){
+            return 1;
+        } else if ((money1 == money2) && (pop1 == pop2)){
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+
+
+    //Checks whether square is legal
+    public static boolean checkSquareLegality(int x, int y){
+        if(x < 0 || y < 0){
+            return false;
+        }
+        return true;
+    }
+
+
+
+
+
 
 
 

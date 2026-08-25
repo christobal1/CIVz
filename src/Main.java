@@ -12,12 +12,16 @@ public class Main{
     static JButton[][] visualWorldMap = new JButton[numRows][numCols];
     static JLabel[] hotBar = new JLabel[numHotBarItems];
 
+
+
     public static void main(String[] args){
-        Logic.writeMap();
+        //Logic.writeMap();
         Graphics.graphicSetup(numRows, numCols, numHotBarItems, visualWorldMap);
         Logic.completeWorldMapReset(visualWorldMap);
 
-        Logic.createNations(visualWorldMap);
+        Logic.startGame(visualWorldMap);
+
+
 
 
 
