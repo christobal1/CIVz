@@ -14,15 +14,20 @@ public class Logic{
     
     public static void startGame(JButton[][] visualWorldMap) throws InterruptedException{
 
-        Nation n1 = createNation(visualWorldMap, 0, 0, Color.RED);
-        Nation n2 = createNation(visualWorldMap, 19, 39, Color.GREEN);
-        Nation n3 = createNation(visualWorldMap, 0, 39, Color.MAGENTA);
-        Nation n4 = createNation(visualWorldMap, 19, 0, Color.YELLOW);
+        Nation n1 = createNation(visualWorldMap, "Coolistan", 0, 0, Color.RED);
+        Nation n2 = createNation(visualWorldMap, "Fooleria", 19, 39, Color.GREEN);
+        Nation n3 = createNation(visualWorldMap, "Usbonia", 0, 39, Color.MAGENTA);
+        Nation n4 = createNation(visualWorldMap, "Giantopia", 19, 0, Color.YELLOW);
 
-        for(int i=0; i<100; i++){
-            Thread.sleep(300);
+        for(int i=0; i<400; i++){
+
+            Thread.sleep(50);
+
             makeMove(visualWorldMap, n1);
+            System.out.println("n1 army:" + n1.getArmySize());
+
             makeMove(visualWorldMap, n2);
+            System.out.println("n2 army " + n2.getArmySize());
             makeMove(visualWorldMap, n3);
             makeMove(visualWorldMap, n4);
         }
@@ -31,10 +36,10 @@ public class Logic{
 
 
     //Create the nations, their "owned field array" and "start field"
-    public static Nation createNation(JButton[][] visualWorldMap, int startX, int startY, Color color){
+    public static Nation createNation(JButton[][] visualWorldMap, String name, int startX, int startY, Color color){
 
         ArrayList<Field> nFields = new ArrayList<>();
-        Nation n = new Nation("Coolistan", nFields, color);
+        Nation n = new Nation(name, nFields, color, startX, startY);
 
         changeFieldOwner(visualWorldMap, startX, startY, n);
         return n;
@@ -113,18 +118,56 @@ public class Logic{
 
         Field field = worldMap[x][y];
 
-        if(field.ownerNation != null){
-            (field.ownerNation).removeFieldFromOwned(field);
+        //If field has no owner
+        if(field.ownerNation == null){
+            field.setOwnerNation(newOwner);
+            newOwner.addFieldToOwned(field);
+            Graphics.changeSquareColor(visualWorldMap, x, y, newOwner.color);
         }
 
-        field.ownerNation = newOwner;
-        newOwner.addFieldToOwned(field);
+        //If field has owner
+        if(field.ownerNation != newOwner){
+            if(fightForField(x, y, newOwner).equals("successful")){
+                (field.ownerNation).removeFieldFromOwned(field);
+                field.setOwnerNation(newOwner);
+                newOwner.addFieldToOwned(field);
+                Graphics.changeSquareColor(visualWorldMap, x, y, newOwner.color);
+            }
+        }
 
-        Graphics.changeSquareColor(visualWorldMap, x, y, newOwner.color);
+        
     }
 
 
+    public static String fightForField(int x, int y, Nation attacker){
 
+        Nation defender = worldMap[x][y].getOwnerNation();
+        int defenderArmy = defender.getArmySize();
+
+        System.out.println(attacker.getName() + "attacks ");
+
+        int attackerArmy = attacker.getArmySize();
+
+        System.out.println(defender.getName() + " at (" + x + ", " + y + ")");
+
+        if(attackerArmy > defenderArmy){
+            System.out.println("... and wins");
+            defender.setLastLostField(new Point(x, y));
+            return "successful";
+
+        } else if (attackerArmy == defenderArmy){
+            int randomNum = (int)(Math.random() * 10);
+            if(randomNum % 2 == 0){
+                System.out.println("... and wins.");
+                defender.setLastLostField(new Point(x, y));
+                return "successful";
+            }
+        }
+
+        System.out.println("... and loses.");
+        attacker.setLastLostField(new Point(x, y));
+        return "failed";
+    }
 
 
     //Field Logic
@@ -151,10 +194,19 @@ public class Logic{
 
     //move to other square based on search
     public static void makeMove(JButton[][] visualWorldMap, Nation n){
+        
+        if(n.lastLostCooldown > 0){
+            n.lastLostCooldown --;
+            if(n.lastLostCooldown == 0){
+                n.lastLostField = null;
+            }
+        }
+        
         Point p = searchNextSquare(n);
 
         changeFieldOwner(visualWorldMap, p.x, p.y, n);
     }
+
 
 
     //Search next best square to attack based on surrounding fields
@@ -197,6 +249,7 @@ public class Logic{
         }
 
         //Before sorting
+        /**
         for(int i=0; i<sizeOfOwnedArray; i++){
             System.out.println("Coordinates unranked:");
             for(int j=0; j<4; j++){
@@ -205,10 +258,10 @@ public class Logic{
                 }
                 System.out.println(matchVisualCoordsToRealCoords(potentialNextCoords[i][j][0], potentialNextCoords[i][j][1]));
             }
-        }
+        } */
 
 
-        //Copy Array
+        //Copy Array 
         for(int i=0; i<sizeOfOwnedArray; i++){
             for(int j=0; j<4; j++){
                 rankedNextCoords[i][j][0] = potentialNextCoords[i][j][0];
@@ -276,11 +329,12 @@ public class Logic{
             }
         }
 
-        System.out.println("Best Move: " + bestX + " " + bestY);
+        //System.out.println("Best Move: " + bestX + " " + bestY);
 
 
         
         //After sorting
+        /*
         for(int i=0; i<sizeOfOwnedArray; i++){
             System.out.println("Coordinates ranked:");
             for(int j=0; j<4; j++){
@@ -289,7 +343,7 @@ public class Logic{
                 }
                 System.out.println(matchVisualCoordsToRealCoords(rankedNextCoords[i][j][0], rankedNextCoords[i][j][1]));
             }
-        }
+        } */
 
         return new Point(bestX, bestY);
 
@@ -299,21 +353,38 @@ public class Logic{
 
     public static int compareFields(Nation n, int x1, int y1, int x2, int y2){
 
-        double money1 = (worldMap[x1][y1]).getDailyMoney();
-        double money2 = (worldMap[x2][y2]).getDailyMoney();
-
-        int pop1 = (worldMap[x1][y1].getPopulation());
-        int pop2 = (worldMap[x2][y2].getPopulation());
-
-        //Add: Better bot decisions maybe by setting focus in Nation playstyle
-        if((money1 > 1.5 * money2) && (pop1 > 10)){
-            return 1;
-        } else if ((money1 == money2) && (pop1 == pop2)){
+        if(evaluateField(n, x1, y1) > evaluateField(n, x2, y2)){
             return 1;
         } else {
             return 2;
         }
     }
+
+    public static double evaluateField(Nation n, int x, int y){
+        
+        double score = 0.0;
+
+        Field f = worldMap[x][y];
+        Point lastLost = n.getLastLostField();
+
+        double money = f.getDailyMoney();
+        int pop = f.getPopulation();
+        int dist = (Math.abs(n.getStartX() - x)) + Math.abs(n.getStartY() - y);
+
+        //closer to start of Nation n = better, more money = slightly better, more pop = bit better
+        score += 300.0 / (dist + 1);
+        score += money * 0.5;
+        score += pop * 0.2;
+
+        if (lastLost != null && (lastLost.x == x && lastLost.y == y)){
+            return -9999;
+        }
+        
+
+        return score;
+
+    }
+
 
     //Swap Array for Bubble Sort
     public static void swap(int array[][][], int i, int j){
@@ -372,7 +443,16 @@ public class Logic{
 
 
 
-    //TESTS
+
+
+
+
+
+
+
+
+
+    //SETUP
 
     //Write a map.txt
     public static void writeMap(){

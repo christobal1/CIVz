@@ -55,6 +55,10 @@ public class Field {
         return fType;
     }
 
+    public Nation getOwnerNation(){
+        return ownerNation;
+    }
+
     public String getFieldInfo(){
         String s = ("(" + Integer.toString(fieldCoordX) + ", " + Integer.toString(fieldCoordY) + ") \nPOPULATION: " + Integer.toString(population) + "\nDAILY $: " + Double.toString(dailyMoney) + "\n");
         return s;
@@ -67,6 +71,10 @@ public class Field {
 
     public void setDailyMoney(double newDailyMoney){
         this.dailyMoney = newDailyMoney;
+    }
+
+    public void setOwnerNation(Nation newOwner){
+        this.ownerNation = newOwner;
     }
 
 }
