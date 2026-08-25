@@ -177,7 +177,7 @@ public class Graphics{
     public static void testBlink(JButton[][] visualWorldmap, int numRows, int numCols){
         final int[] index = {0};
 
-       Timer timer = new Timer(600, e->{
+        Timer timer = new Timer(600, e->{
 
             index[0]++;
             if(index[0] % 2 == 0) changeAllSquaresColor(visualWorldmap, numRows, numCols, Color.GREEN);

@@ -1,4 +1,5 @@
 import java.awt.Color;
+import java.awt.Point;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -11,33 +12,33 @@ public class Logic{
 
 
     
-    public static void startGame(JButton[][] visualWorldMap){
+    public static void startGame(JButton[][] visualWorldMap) throws InterruptedException{
 
-        createNations(visualWorldMap);
+        Nation n1 = createNation(visualWorldMap, 0, 0, Color.RED);
+        Nation n2 = createNation(visualWorldMap, 19, 39, Color.GREEN);
+        Nation n3 = createNation(visualWorldMap, 0, 39, Color.MAGENTA);
+        Nation n4 = createNation(visualWorldMap, 19, 0, Color.YELLOW);
+
+        for(int i=0; i<100; i++){
+            Thread.sleep(300);
+            makeMove(visualWorldMap, n1);
+            makeMove(visualWorldMap, n2);
+            makeMove(visualWorldMap, n3);
+            makeMove(visualWorldMap, n4);
+        }
 
     }
 
 
     //Create the nations, their "owned field array" and "start field"
-    public static void createNations(JButton[][] visualWorldMap){
+    public static Nation createNation(JButton[][] visualWorldMap, int startX, int startY, Color color){
 
-        ArrayList<Field> n1Fields = new ArrayList<>();
-        Nation n1 = new Nation("Coolistan", n1Fields, Color.RED);
+        ArrayList<Field> nFields = new ArrayList<>();
+        Nation n = new Nation("Coolistan", nFields, color);
 
-        int n1StartX = 0;
-        int n1StartY = 0;
-        changeFieldOwner(visualWorldMap, n1StartX, n1StartY, n1);
+        changeFieldOwner(visualWorldMap, startX, startY, n);
+        return n;
 
-
-
-        ArrayList<Field> n2Fields = new ArrayList<>();
-        Nation n2 = new Nation("Fooleria", n2Fields, Color.GREEN);
-
-        int n2StartX = 19;
-        int n2StartY = 39;
-        changeFieldOwner(visualWorldMap, n2StartX, n2StartY, n2);
-
-        makeMove(n1);
 
     }
 
@@ -132,7 +133,11 @@ public class Logic{
     //Is it weird to have this method? Maybe there's a better way ?
     public static String matchVisualCoordsToRealCoords(int x, int y){
 
-        return worldMap[x][y].getFieldInfo();
+        if(checkFieldLegality(x, y) == true){
+            return worldMap[x][y].getFieldInfo();
+        } else {
+            return "illegal coordinates";
+        }
     }
 
 
@@ -145,9 +150,10 @@ public class Logic{
 
 
     //move to other square based on search
-    public static void makeMove(Nation n){
-        searchNextSquare(n);
+    public static void makeMove(JButton[][] visualWorldMap, Nation n){
+        Point p = searchNextSquare(n);
 
+        changeFieldOwner(visualWorldMap, p.x, p.y, n);
     }
 
 
@@ -155,10 +161,13 @@ public class Logic{
     //Put the coordinates of the surrounding fields in a 3d array
     //After that rank them and sort some out according to legality
     //An other method will be invoked for this!
-    public static void searchNextSquare(Nation n){
+    public static Point searchNextSquare(Nation n){
         int sizeOfOwnedArray = (n.ownedFields).size();
         int[][][] potentialNextCoords = new int[sizeOfOwnedArray][4][2];
         int[][][] rankedNextCoords = new int[sizeOfOwnedArray][4][2];
+
+        int bestX = -1;
+        int bestY = -1;
 
         for(int i=0; i<sizeOfOwnedArray; i++){
             //Get the coordinates of one of the owned fields
@@ -168,10 +177,10 @@ public class Logic{
 
             int northX = x;
             potentialNextCoords[i][0][0] = northX;
-            int northY = y-1;
+            int northY = y+1;
             potentialNextCoords[i][0][1] = northY;
             
-            int eastX = x-1;
+            int eastX = x+1;
             potentialNextCoords[i][1][0] = eastX;
             int eastY = y;
             potentialNextCoords[i][1][1] = eastY;
@@ -181,66 +190,114 @@ public class Logic{
             int southY = y-1;
             potentialNextCoords[i][2][1] = southY;
 
-            int westX = x+1;
+            int westX = x-1;
             potentialNextCoords[i][3][0] = westX;
             int westY = y;
             potentialNextCoords[i][3][1] = westY;
         }
 
-
-
-        
-
-        for(int i=0; i<4; i++){
+        //Before sorting
+        for(int i=0; i<sizeOfOwnedArray; i++){
+            System.out.println("Coordinates unranked:");
             for(int j=0; j<4; j++){
-                if(compareFields(n, potentialNextCoords[0][j][0], potentialNextCoords[0][j][1], potentialNextCoords[0][j+1][0], potentialNextCoords[0][j+1][1]) == 1){
-                    int tempX = potentialNextCoords[0][j][0];
-                    int tempY = potentialNextCoords[0][j][1];
+                for(int k=0; k<2; k++){
+                    System.out.print(potentialNextCoords[i][j][k] + " ");
+                }
+                System.out.println(matchVisualCoordsToRealCoords(potentialNextCoords[i][j][0], potentialNextCoords[i][j][1]));
+            }
+        }
 
 
+        //Copy Array
+        for(int i=0; i<sizeOfOwnedArray; i++){
+            for(int j=0; j<4; j++){
+                rankedNextCoords[i][j][0] = potentialNextCoords[i][j][0];
+                rankedNextCoords[i][j][1] = potentialNextCoords[i][j][1];
+            }
+        }
+
+
+        //Bubble Sort inside each of the NESW fields
+        for(int i=0; i<sizeOfOwnedArray; i++){
+            for(int pass=0; pass<3; pass++){
+                for(int j=0; j<3; j++){
+                    int x1 = rankedNextCoords[i][j][0];
+                    int y1 = rankedNextCoords[i][j][1];
+
+                    int x2 = rankedNextCoords[i][j+1][0];
+                    int y2 = rankedNextCoords[i][j+1][1];
+
+    
+                    //Sort by the following rules, illegal fields get pushed back
+                    boolean illegal1 = !checkFieldLegality(x1, y1) || isOwnField(x1, y1, n);
+                    boolean illegal2 = !checkFieldLegality(x2, y2) || isOwnField(x2, y2, n);
+                    //If both illegal, dont bother
+
+                    if(illegal1 && illegal2){
+                        continue;
+                    }
+
+                    //x1 illegal -> push it back
+                    if(illegal1){
+                        swap(rankedNextCoords, i, j);
+                        continue;
+                    }
+
+                    //x2 illegal -> x1 stays
+                    if(illegal2){
+                        continue;
+                    }
+
+                    //Both legal -> compare normally
+                    if(compareFields(n, x1, y1, x2, y2) == 2){
+                        swap(rankedNextCoords, i, j);
+                    }
                 }
             }
         }
 
 
+        //Now find the best of the sorted Coordinates
+        for(int i=0; i<sizeOfOwnedArray; i++){
+            int x = rankedNextCoords[i][0][0];
+            int y = rankedNextCoords[i][0][1];
+
+            if(!checkFieldLegality(x, y) || isOwnField(x, y, n)) continue;
+
+            if(bestX == -1){
+                bestX = x;
+                bestY = y;
+                continue;
+            }
+
+            if(compareFields(n, bestX, bestY, x, y) == 2){
+                bestX = x;
+                bestY = y;
+            }
+        }
+
+        System.out.println("Best Move: " + bestX + " " + bestY);
+
 
         
-
+        //After sorting
         for(int i=0; i<sizeOfOwnedArray; i++){
+            System.out.println("Coordinates ranked:");
             for(int j=0; j<4; j++){
                 for(int k=0; k<2; k++){
                     System.out.print(rankedNextCoords[i][j][k] + " ");
                 }
-                System.out.println();
+                System.out.println(matchVisualCoordsToRealCoords(rankedNextCoords[i][j][0], rankedNextCoords[i][j][1]));
             }
         }
 
+        return new Point(bestX, bestY);
 
-
-
-
-
-        int array[] = {1,2,99,5,7,2,9,4};
-
-        for(int i=0; i<(array.length)-1; i++){
-            for(int j=0; j<(array.length)-1; j++){
-                if(array[j] > array[j+1]){
-                    int temp = array[j+1];
-                    array[j+1] = array[j];
-                    array[j] = temp;
-                }
-            }
-        }
-
-        for(int i=0; i<array.length; i++){
-            System.out.print(array[i] + " ");
-        }
     }
 
+
+
     public static int compareFields(Nation n, int x1, int y1, int x2, int y2){
-
-        //Add: If is mine, give rating 0
-
 
         double money1 = (worldMap[x1][y1]).getDailyMoney();
         double money2 = (worldMap[x2][y2]).getDailyMoney();
@@ -258,16 +315,49 @@ public class Logic{
         }
     }
 
+    //Swap Array for Bubble Sort
+    public static void swap(int array[][][], int i, int j){
+        //swap X
+        int tempX = array[i][j][0];
+        array[i][j][0] = array[i][j+1][0];
+        array[i][j+1][0] = tempX;
 
-    //Checks whether square is legal
-    public static boolean checkSquareLegality(int x, int y){
-        if(x < 0 || y < 0){
-            return false;
-        }
-        return true;
+        //swap y
+        int tempY = array[i][j][1];
+        array[i][j][1] = array[i][j+1][1];
+        array[i][j+1][1] = tempY;
     }
 
 
+
+
+
+    //Checks whether field is legal kind of field (no sea, no outside of map)
+    public static boolean checkFieldLegality (int x, int y){
+
+        if(x < 0 || y < 0 || x >= Main.numRows || y >= Main.numCols){
+            return false;
+
+        } else if (worldMap[x][y] == null){
+            return false;
+
+        } else if ((worldMap[x][y]).getFieldType() == Field.FieldType.SEA){
+            return false;
+        }
+
+        //Add: if my field, then illegal to claim
+
+        return true;
+    }
+
+    //Checks whether it is a nations own field
+    public static boolean isOwnField(int x, int y, Nation n){
+
+        Field field = worldMap[x][y];
+        
+        return field.ownerNation == n;
+    }
+    
 
 
 

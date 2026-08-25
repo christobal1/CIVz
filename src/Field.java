@@ -21,7 +21,7 @@ public class Field {
         this.population = population;
         this.dailyMoney = dailyMoney;
         this.fType = FieldType.NONE;
-        this.ownerNation = ownerNation;
+        this.ownerNation = null;
     }
 
     public void printFieldInfo(){
@@ -49,6 +49,10 @@ public class Field {
 
     public double getDailyMoney(){
         return dailyMoney;
+    }
+
+    public FieldType getFieldType(){
+        return fType;
     }
 
     public String getFieldInfo(){
