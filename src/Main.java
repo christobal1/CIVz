@@ -6,8 +6,8 @@ public class Main{
 
     static File map = new File("Map.txt");
 
-    public static int numRows = 20;
-    public static int numCols = 40;
+    public static int numRows = 40;
+    public static int numCols = 80;
     public static int numHotBarItems = 5;
 
     static JButton[][] visualWorldMap = new JButton[numRows][numCols];

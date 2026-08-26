@@ -20,9 +20,9 @@ public class Logic{
         Nation n3 = createNation(visualWorldMap, "Usbonia", 0, 39, Color.MAGENTA);
         Nation n4 = createNation(visualWorldMap, "Giantopia", 19, 0, Color.YELLOW);
 
-        for(int i=0; i<2000; i++){
+        for(int i=0; i<3000; i++){ // 2000
 
-            Thread.sleep(50);
+            Thread.sleep(20); // 50
 
             for(int j=0; j<Main.numRows; j++){
                 for(int k=0; k<Main.numCols; k++){
