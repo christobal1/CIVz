@@ -11,8 +11,10 @@ public class Field {
     FieldType fType;
 
     enum FieldType{
-        NONE,
-        SEA
+        LAND,
+        SEA,
+        MOUNTAIN,
+        CITY
     }
 
     Field(int fieldCoordX, int fieldCoordY, int population, double dailyMoney){
@@ -20,14 +22,9 @@ public class Field {
         this.fieldCoordY = fieldCoordY;
         this.population = population;
         this.dailyMoney = dailyMoney;
-        this.fType = FieldType.NONE;
+        this.fType = FieldType.LAND;
         this.ownerNation = null;
     }
-
-    public void printFieldInfo(){
-        System.out.println("FIELD at: (" + fieldCoordX + ", " + fieldCoordY + ")\nPOPULATION: " + population + "\nDAILY $: " + dailyMoney + "\n");
-    }
-
 
 
 
@@ -75,6 +72,25 @@ public class Field {
 
     public void setOwnerNation(Nation newOwner){
         this.ownerNation = newOwner;
+    }
+
+
+
+
+
+
+
+    //Methods
+
+    public void printFieldInfo(){
+        System.out.println("FIELD at: (" + fieldCoordX + ", " + fieldCoordY + ")\nPOPULATION: " + population + "\nDAILY $: " + dailyMoney + "\n");
+    }
+
+
+    public void naturalPopulationGrowth(){
+        //setPopulation((int)(getPopulation() * 1.03));
+        int population = ((int)(getPopulation() * 1.03));
+        setPopulation(Math.min(population, 10000));
     }
 
 }

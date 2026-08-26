@@ -94,12 +94,17 @@ public class Graphics{
     //SYNCHRONIZE worldmap with visual worldmap
     public static void synchronizeVisual(JButton[][] visualWorldMap, int x, int y, Field.FieldType fType){
         switch(fType){
-            case NONE:
+            case LAND:
                 changeSquareColor(visualWorldMap, x, y, Color.LIGHT_GRAY);
                 break;
             case SEA:
                 changeSquareColor(visualWorldMap, x, y, Color.BLUE);
                 break;
+            case CITY:
+                changeSquareColor(visualWorldMap, x, y, Color.BLACK); //better give text on the button to signal city status
+                break;
+            case MOUNTAIN:
+                changeSquareColor(visualWorldMap, x, y, Color.DARK_GRAY);
         }
     }
 

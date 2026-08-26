@@ -1,6 +1,7 @@
 import java.io.File;
 import javax.swing.*;
 
+
 public class Main{
 
     static File map = new File("Map.txt");
@@ -19,7 +20,9 @@ public class Main{
         Graphics.graphicSetup(numRows, numCols, numHotBarItems, visualWorldMap);
         Logic.completeWorldMapReset(visualWorldMap);
 
+        RessourceManagement.playSound();
         Logic.startGame(visualWorldMap);
+        
 
 
 

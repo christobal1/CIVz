@@ -11,26 +11,43 @@ public class Logic{
     public static Field[][] worldMap = new Field[Main.numRows][Main.numCols];
 
     
-    public static void startGame(JButton[][] visualWorldMap) throws InterruptedException{
+    public static void startGame(JButton[][] visualWorldMap) throws InterruptedException {
 
-        /**
+        
         Nation n1 = createNation(visualWorldMap, "Coolistan", 0, 0, Color.RED);
         Nation n2 = createNation(visualWorldMap, "Fooleria", 19, 39, Color.GREEN);
+
         Nation n3 = createNation(visualWorldMap, "Usbonia", 0, 39, Color.MAGENTA);
         Nation n4 = createNation(visualWorldMap, "Giantopia", 19, 0, Color.YELLOW);
 
-        for(int i=0; i<400; i++){
+        for(int i=0; i<2000; i++){
 
             Thread.sleep(50);
 
-            makeMove(visualWorldMap, n1);
-            System.out.println("n1 army:" + n1.getArmySize());
+            for(int j=0; j<Main.numRows; j++){
+                for(int k=0; k<Main.numCols; k++){
+                    worldMap[j][k].naturalPopulationGrowth();
+                }
+            }
 
+            System.out.println("---\nRound " + i + "\n");
+            makeMove(visualWorldMap, n1);
+            //System.out.print("n1 pop:" + n1.getTotalPopulation());
+            //System.out.println(" n1 army:" + n1.getArmySize());
+            
             makeMove(visualWorldMap, n2);
-            System.out.println("n2 army " + n2.getArmySize());
+            //System.out.print("n2 pop:" + n2.getTotalPopulation());
+            //System.out.println(" n2 army:" + n2.getArmySize());
+
             makeMove(visualWorldMap, n3);
-            makeMove(visualWorldMap, n4); 
-        }*/
+            //System.out.print("n3 pop:" + n3.getTotalPopulation());
+            //System.out.println(" n3 army:" + n3.getArmySize());
+
+            makeMove(visualWorldMap, n4);
+            //System.out.print("n4 pop:" + n4.getTotalPopulation());
+            //System.out.println(" n4 army:" + n4.getArmySize());
+            
+        }
 
     }
 
@@ -46,7 +63,6 @@ public class Logic{
 
 
     }
-
 
 
     //Reads all Field information from the Map.txt
@@ -99,6 +115,14 @@ public class Logic{
 
 
 
+
+
+
+
+
+
+
+
     //Changes information of one square
     //Meant for map & terrain building
     //Because no owner will be set, only field type (fType)
@@ -139,6 +163,19 @@ public class Logic{
     }
 
 
+
+
+
+    /* -------------------------------------------------------------------- */
+
+
+
+
+
+
+
+    //BOT WAR METHODS
+
     public static String fightForField(int x, int y, Nation attacker){
 
         Nation defender = worldMap[x][y].getOwnerNation();
@@ -150,22 +187,40 @@ public class Logic{
 
         System.out.println(defender.getName() + " at (" + x + ", " + y + ")");
 
+        //attacker wins
         if(attackerArmy > defenderArmy){
             System.out.println("... and wins");
             defender.setLastLostField(new Point(x, y));
+            attacker.setArmySize((int)Math.max(1, Math.round(attackerArmy * 0.7)));
+            defender.setArmySize((int)Math.max(1, Math.round(defenderArmy * 0.5))); //attacker loses less army if he wins, extract these method invocations to other method because mountain and city combat will differ even more
+            attacker.truces.put(defender, 10);
+            defender.truces.put(attacker, 10);
+
             return "successful";
 
+        //random chance of winning / losing
         } else if (attackerArmy == defenderArmy){
             int randomNum = (int)(Math.random() * 10);
             if(randomNum % 2 == 0){
                 System.out.println("... and wins.");
                 defender.setLastLostField(new Point(x, y));
+                attacker.setArmySize((int)Math.round(attackerArmy * 0.4));
+                defender.setArmySize((int)Math.round(defenderArmy * 0.4));
+                attacker.truces.put(defender, 10);
+                defender.truces.put(attacker, 10);
+ 
                 return "successful";
             }
         }
 
+        //attacker loses
         System.out.println("... and loses.");
         attacker.setLastLostField(new Point(x, y));
+        attacker.setArmySize(Math.max(1, (int)Math.round(attackerArmy * 0.5)));
+        defender.setArmySize(Math.max(1, (int)Math.round(defenderArmy * 0.9)));
+        attacker.truces.put(defender, 10);
+        defender.truces.put(attacker, 10);
+
         return "failed";
     }
 
@@ -186,14 +241,10 @@ public class Logic{
 
 
 
-
-
-
-
-
-
     //move to other square based on search
     public static void makeMove(JButton[][] visualWorldMap, Nation n){
+
+        n.draft();
         
         if(n.lastLostCooldown > 0){
             n.lastLostCooldown --;
@@ -201,8 +252,31 @@ public class Logic{
                 n.lastLostField = null;
             }
         }
+
+
+
+        //Update truces every time
+        //Reduce, but when 0 then remove Nation from truces HashMap completely
+        Iterator<Map.Entry<Nation, Integer>> it = n.truces.entrySet().iterator();
+        while(it.hasNext()){
+            Map.Entry<Nation, Integer> entry = it.next();
+
+            int newVal = entry.getValue() - 1;
+
+            if(newVal <= 0){
+                it.remove();
+            } else {
+                entry.setValue(newVal);
+            }
+        }
+
+
         
         Point p = searchNextSquare(n);
+
+        if(p == null){ //do nothing
+            return;
+        }
 
         changeFieldOwner(visualWorldMap, p.x, p.y, n);
     }
@@ -317,6 +391,11 @@ public class Logic{
 
             if(!checkFieldLegality(x, y) || isOwnField(x, y, n)) continue;
 
+            //When score unusable, ignore it
+            double score = evaluateField(n, x, y);
+            if(score == Double.NEGATIVE_INFINITY) continue;
+
+
             if(bestX == -1){
                 bestX = x;
                 bestY = y;
@@ -344,6 +423,11 @@ public class Logic{
                 System.out.println(matchVisualCoordsToRealCoords(rankedNextCoords[i][j][0], rankedNextCoords[i][j][1]));
             }
         } */
+       
+        //Do nothing if situation not good
+        if (bestX == -1){
+            return null;
+        }
 
         return new Point(bestX, bestY);
 
@@ -351,6 +435,7 @@ public class Logic{
 
 
 
+    //1 for first, 2 for second field
     public static int compareFields(Nation n, int x1, int y1, int x2, int y2){
 
         if(evaluateField(n, x1, y1) > evaluateField(n, x2, y2)){
@@ -372,14 +457,21 @@ public class Logic{
         int dist = (Math.abs(n.getStartX() - x)) + Math.abs(n.getStartY() - y);
 
         //closer to start of Nation n = better, more money = slightly better, more pop = bit better
-        score += 300.0 / (dist + 1);
+        score += 1000.0 / (dist + 1);
         score += money * 0.5;
         score += pop * 0.2;
 
+        //If this coordinate is the last lost one, change to HashMap for more avoidance of those last lost fields, perhaps link to playstyle of bot
         if (lastLost != null && (lastLost.x == x && lastLost.y == y)){
-            return -9999;
+            return Double.NEGATIVE_INFINITY;
         }
         
+        //Evaluate by checking truces with the owner nation
+        //Use getOrDefault because otherwise Null Pointer Exception, if owner is not in the map.
+        Nation owner = f.getOwnerNation();
+        if((n.truces).getOrDefault(owner, 0) > 0){
+            return Double.NEGATIVE_INFINITY;
+        }
 
         return score;
 
@@ -439,7 +531,7 @@ public class Logic{
 
 
 
-
+    /* -------------------------------------------------------------------- */
 
 
 
@@ -474,7 +566,7 @@ public class Logic{
                     double randomMoneyDaily = (double)(Math.random() * 200);
                     randomMoneyDaily = Math.round((randomMoneyDaily * 100) / 100);
 
-                    String type = "NONE";
+                    String type = "LAND";
 
                     for(int k=0; k<numberOfSeas; k++){
                         if(seaSpawnCoords[k][0] == i && seaSpawnCoords[k][1] == j){
