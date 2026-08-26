@@ -10,10 +10,10 @@ public class Logic{
     
     public static Field[][] worldMap = new Field[Main.numRows][Main.numCols];
 
-
     
     public static void startGame(JButton[][] visualWorldMap) throws InterruptedException{
 
+        /**
         Nation n1 = createNation(visualWorldMap, "Coolistan", 0, 0, Color.RED);
         Nation n2 = createNation(visualWorldMap, "Fooleria", 19, 39, Color.GREEN);
         Nation n3 = createNation(visualWorldMap, "Usbonia", 0, 39, Color.MAGENTA);
@@ -29,8 +29,8 @@ public class Logic{
             makeMove(visualWorldMap, n2);
             System.out.println("n2 army " + n2.getArmySize());
             makeMove(visualWorldMap, n3);
-            makeMove(visualWorldMap, n4);
-        }
+            makeMove(visualWorldMap, n4); 
+        }*/
 
     }
 
@@ -144,7 +144,7 @@ public class Logic{
         Nation defender = worldMap[x][y].getOwnerNation();
         int defenderArmy = defender.getArmySize();
 
-        System.out.println(attacker.getName() + "attacks ");
+        System.out.println(attacker.getName() + " attacks ");
 
         int attackerArmy = attacker.getArmySize();
 
@@ -457,6 +457,15 @@ public class Logic{
     //Write a map.txt
     public static void writeMap(){
 
+        //Calculate number of seas and sea spawn coordinates
+        int numberOfSeas = (int) Math.round(Math.sqrt(Main.numRows * Main.numCols) / 4);
+        int seaSpawnCoords[][] = new int[numberOfSeas][2];
+        for(int i=0; i<numberOfSeas; i++){
+            seaSpawnCoords[i][0] = (int)(Math.random() * Main.numRows);
+            seaSpawnCoords[i][1] = (int)(Math.random() * Main.numCols);
+        }
+
+        //Write the map
         try{
             FileWriter myWriter = new FileWriter("Map.txt", false);
             for(int i=0; i<Main.numRows; i++){
@@ -464,11 +473,21 @@ public class Logic{
                     int randomPop = (int)(Math.random() * 101);
                     double randomMoneyDaily = (double)(Math.random() * 200);
                     randomMoneyDaily = Math.round((randomMoneyDaily * 100) / 100);
-                    
+
+                    String type = "NONE";
+
+                    for(int k=0; k<numberOfSeas; k++){
+                        if(seaSpawnCoords[k][0] == i && seaSpawnCoords[k][1] == j){
+                            type = "SEA";
+                        }
+                    }
+
+
+
                     if((i == Main.numRows - 1) && (j == Main.numCols - 1)) {
-                        myWriter.write(i + " " + j + " " + randomPop + " " + randomMoneyDaily + " " + landTypeCalc(i, j));
+                        myWriter.write(i + " " + j + " " + randomPop + " " + randomMoneyDaily + " " + type);
                     } else {
-                        myWriter.write(i + " " + j + " " + randomPop + " " + randomMoneyDaily + " " + landTypeCalc(i, j) + "\n");
+                        myWriter.write(i + " " + j + " " + randomPop + " " + randomMoneyDaily + " " + type + "\n");
                     }
                 }
             }
@@ -479,23 +498,8 @@ public class Logic{
         }
     }
 
-    //Works currently for 20x40 map
-    //Flexibility for other types necessary
-    public static String landTypeCalc(int i, int j){
-
-        if((i == 2)&&(j < 4)) {
-            return "SEA";
-        } else if ((i > 10 && i < 18) && (j > 4 && j < 10)){
-            return "SEA";
-        } else if ((i > 16 && i < 22) && (j > 14 && j < 19)){
-            return "SEA";
-        } else if ((i > 5 && i < 16) && (j > 29 && j < 40)){
-            return "SEA";
-        }
-
-        return "NONE";
-    }
 
 
-    
+
+
 }

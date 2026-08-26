@@ -15,7 +15,7 @@ public class Main{
 
 
     public static void main(String[] args) throws InterruptedException{
-        //Logic.writeMap();
+        Logic.writeMap();
         Graphics.graphicSetup(numRows, numCols, numHotBarItems, visualWorldMap);
         Logic.completeWorldMapReset(visualWorldMap);
 
@@ -25,7 +25,7 @@ public class Main{
 
 
 
-        
+
 
 
         //Graphics.testFill(visualWorldMap, numRows, numCols);
