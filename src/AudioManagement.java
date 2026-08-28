@@ -1,13 +1,13 @@
 import java.io.File;
 import javax.sound.sampled.*;
 
-public class RessourceManagement {
+public class AudioManagement {
 
     //File backgroundMusic = new File("background.mp3");
 
 
     public static void playSound(){
-        File file = new File("background.wav");
+        File file = new File("ressources/audio/background.wav");
 
         try {
             AudioInputStream audio = AudioSystem.getAudioInputStream(file);

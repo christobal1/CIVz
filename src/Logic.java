@@ -4,59 +4,50 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import javax.swing.*;
 
 public class Logic{
     
-    public static Field[][] worldMap = new Field[Main.numRows][Main.numCols];
+    public static Field[][] worldMap = new Field[Main.numCols][Main.numRows];
 
     
     public static void startGame(JButton[][] visualWorldMap) throws InterruptedException {
 
         
-        Nation n1 = createNation(visualWorldMap, "Coolistan", 0, 0, Color.RED);
-        Nation n2 = createNation(visualWorldMap, "Fooleria", 19, 39, Color.GREEN);
+        Nation n1 = createNation(visualWorldMap, 1, "Coolistan", 0, 0, Graphic.red);
+        Nation n2 = createNation(visualWorldMap, 2, "Fooleria", Main.numCols-1, Main.numRows-1, Graphic.darkBlue);
 
-        Nation n3 = createNation(visualWorldMap, "Usbonia", 0, 39, Color.MAGENTA);
-        Nation n4 = createNation(visualWorldMap, "Giantopia", 19, 0, Color.YELLOW);
+        Nation n3 = createNation(visualWorldMap, 3, "Usbonia", 0, Main.numRows-1, Graphic.pink);
+        Nation n4 = createNation(visualWorldMap, 4, "Giantopia", Main.numCols-1, 0, Graphic.green);
 
         for(int i=0; i<3000; i++){ // 2000
 
             Thread.sleep(20); // 50
 
-            for(int j=0; j<Main.numRows; j++){
-                for(int k=0; k<Main.numCols; k++){
+            for(int j=0; j<Main.numCols; j++){
+                for(int k=0; k<Main.numRows; k++){
                     worldMap[j][k].naturalPopulationGrowth();
                 }
             }
 
             System.out.println("---\nRound " + i + "\n");
             makeMove(visualWorldMap, n1);
-            //System.out.print("n1 pop:" + n1.getTotalPopulation());
-            //System.out.println(" n1 army:" + n1.getArmySize());
-            
             makeMove(visualWorldMap, n2);
-            //System.out.print("n2 pop:" + n2.getTotalPopulation());
-            //System.out.println(" n2 army:" + n2.getArmySize());
-
             makeMove(visualWorldMap, n3);
-            //System.out.print("n3 pop:" + n3.getTotalPopulation());
-            //System.out.println(" n3 army:" + n3.getArmySize());
-
             makeMove(visualWorldMap, n4);
-            //System.out.print("n4 pop:" + n4.getTotalPopulation());
-            //System.out.println(" n4 army:" + n4.getArmySize());
-            
+
         }
 
     }
 
 
+
     //Create the nations, their "owned field array" and "start field"
-    public static Nation createNation(JButton[][] visualWorldMap, String name, int startX, int startY, Color color){
+    public static Nation createNation(JButton[][] visualWorldMap, int nationID, String name, int startX, int startY, Color color){
 
         ArrayList<Field> nFields = new ArrayList<>();
-        Nation n = new Nation(name, nFields, color, startX, startY);
+        Nation n = new Nation(nationID, name, nFields, color, startX, startY);
 
         changeFieldOwner(visualWorldMap, startX, startY, n);
         return n;
@@ -129,7 +120,7 @@ public class Logic{
     public static void changeOneSquareOnWorldMap(JButton[][] visualWorldMap, int x, int y, Field.FieldType fType){
 
         worldMap[x][y].fType = fType; //does this work ???
-        Graphics.synchronizeVisual(visualWorldMap, x, y, fType);
+        Graphic.synchronizeVisual(visualWorldMap, x, y, fType);
     }
 
 
@@ -146,7 +137,7 @@ public class Logic{
         if(field.ownerNation == null){
             field.setOwnerNation(newOwner);
             newOwner.addFieldToOwned(field);
-            Graphics.changeSquareColor(visualWorldMap, x, y, newOwner.color);
+            Graphic.changeSquareColor(visualWorldMap, x, y, newOwner.color);
         }
 
         //If field has owner
@@ -155,7 +146,7 @@ public class Logic{
                 (field.ownerNation).removeFieldFromOwned(field);
                 field.setOwnerNation(newOwner);
                 newOwner.addFieldToOwned(field);
-                Graphics.changeSquareColor(visualWorldMap, x, y, newOwner.color);
+                Graphic.changeSquareColor(visualWorldMap, x, y, newOwner.color);
             }
         }
 
@@ -227,7 +218,7 @@ public class Logic{
 
     //Field Logic
     //Info shown when click on fields
-    //The Event Listeners in Graphics.java use this method
+    //The Event Listeners in Graphic.java use this method
     //Is it weird to have this method? Maybe there's a better way ?
     public static String matchVisualCoordsToRealCoords(int x, int y){
 
@@ -245,6 +236,7 @@ public class Logic{
     public static void makeMove(JButton[][] visualWorldMap, Nation n){
 
         n.draft();
+        Graphic.updateHotbarVisual(n);
         
         if(n.lastLostCooldown > 0){
             n.lastLostCooldown --;
@@ -498,7 +490,7 @@ public class Logic{
     //Checks whether field is legal kind of field (no sea, no outside of map)
     public static boolean checkFieldLegality (int x, int y){
 
-        if(x < 0 || y < 0 || x >= Main.numRows || y >= Main.numCols){
+        if(x < 0 || y < 0 || x >= Main.numCols || y >= Main.numRows){
             return false;
 
         } else if (worldMap[x][y] == null){
@@ -550,33 +542,34 @@ public class Logic{
     public static void writeMap(){
 
         //Calculate number of seas and sea spawn coordinates
-        int numberOfSeas = (int) Math.round(Math.sqrt(Main.numRows * Main.numCols) / 4);
+        int numberOfSeas = (int) Math.round(Math.sqrt(Main.numCols * Main.numRows) / 4);
         int seaSpawnCoords[][] = new int[numberOfSeas][2];
         for(int i=0; i<numberOfSeas; i++){
-            seaSpawnCoords[i][0] = (int)(Math.random() * Main.numRows);
-            seaSpawnCoords[i][1] = (int)(Math.random() * Main.numCols);
+            seaSpawnCoords[i][0] = (int)(Math.random() * Main.numCols);
+            seaSpawnCoords[i][1] = (int)(Math.random() * Main.numRows);
         }
 
         //Write the map
         try{
             FileWriter myWriter = new FileWriter("Map.txt", false);
-            for(int i=0; i<Main.numRows; i++){
-                for(int j=0; j<Main.numCols; j++){
-                    int randomPop = (int)(Math.random() * 101);
-                    double randomMoneyDaily = (double)(Math.random() * 200);
+            for(int i=0; i<Main.numCols; i++){
+                for(int j=0; j<Main.numRows; j++){
+                    //int randomPop = 61 + (int)(Math.random() * 40); before, was different, had effect on the decisions of the nations. looks off now.
+                    int randomPop = ThreadLocalRandom.current().nextInt(61, 101); //pop between 61 and 100
+                    double randomMoneyDaily = (double)(Math.random() * 20);
                     randomMoneyDaily = Math.round((randomMoneyDaily * 100) / 100);
 
                     String type = "LAND";
 
                     for(int k=0; k<numberOfSeas; k++){
                         if(seaSpawnCoords[k][0] == i && seaSpawnCoords[k][1] == j){
-                            type = "SEA";
+                            type = "CITY";
                         }
                     }
 
 
 
-                    if((i == Main.numRows - 1) && (j == Main.numCols - 1)) {
+                    if((i == Main.numCols - 1) && (j == Main.numRows - 1)) {
                         myWriter.write(i + " " + j + " " + randomPop + " " + randomMoneyDaily + " " + type);
                     } else {
                         myWriter.write(i + " " + j + " " + randomPop + " " + randomMoneyDaily + " " + type + "\n");

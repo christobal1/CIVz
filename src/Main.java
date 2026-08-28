@@ -4,31 +4,36 @@ import javax.swing.*;
 
 public class Main{
 
+    static String gameTitle = "Nations 1.0";
     static File map = new File("Map.txt");
 
-    public static int numRows = 40;
-    public static int numCols = 80;
+    public static int numCols = 80; //x
+    public static int numRows = 40; //y
+    
     public static int numHotBarItems = 5;
 
-    static JButton[][] visualWorldMap = new JButton[numRows][numCols];
+    static JButton[][] visualWorldMap = new JButton[numCols][numRows];
     static JLabel[] hotBar = new JLabel[numHotBarItems];
 
 
 
     public static void main(String[] args) throws InterruptedException{
-        Logic.writeMap();
-        Graphics.graphicSetup(numRows, numCols, numHotBarItems, visualWorldMap);
-        Logic.completeWorldMapReset(visualWorldMap);
+        //Menu Setup can be commented out
+        Graphic.menuSetup(() ->{
+            Graphic.graphicSetup(numCols, numRows, numHotBarItems, visualWorldMap);
 
-        RessourceManagement.playSound();
-        Logic.startGame(visualWorldMap);
-        
+            Logic.writeMap();
+            Logic.completeWorldMapReset(visualWorldMap);
+            AudioManagement.playSound();
 
-
-
-
-
-
+            new Thread(() -> {
+                try {
+                    Logic.startGame(visualWorldMap);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        });
 
 
         //Graphics.testFill(visualWorldMap, numRows, numCols);

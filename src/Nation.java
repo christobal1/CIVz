@@ -5,6 +5,7 @@ import java.util.HashMap;
 
 public class Nation{
     
+    int nationID;
     String name;
     ArrayList<Field> ownedFields;
     Color color;
@@ -19,9 +20,12 @@ public class Nation{
     int preferedArmySize;
     double totalMoney;
 
+    int technologyLevel; //for war
+
     HashMap<Nation, Integer> truces = new HashMap<>();
     
-    Nation(String name, ArrayList<Field> ownedFields, Color color, int startX, int startY){
+    Nation(int nationID, String name, ArrayList<Field> ownedFields, Color color, int startX, int startY){
+        this.nationID = nationID;
         this.name = name;
         this.ownedFields = ownedFields;
         this.color = color;
@@ -37,6 +41,11 @@ public class Nation{
 
 
     //Getter
+
+    public int getNationID(){
+        return nationID;
+    }
+    
     public String getName(){
         return name;
     }
@@ -51,6 +60,10 @@ public class Nation{
 
     public int getStartY(){
         return startY;
+    }
+
+    public int getTechnology(){
+        return technologyLevel;
     }
 
     public Point getLastLostField(){
@@ -94,6 +107,9 @@ public class Nation{
         this.armySize = Math.max(0, Math.min(newArmySize, maxArmy));
     }
 
+    public void setTechnology(int newTechnologyLevel){
+        this.technologyLevel = newTechnologyLevel;
+    }
 
 
 
@@ -119,7 +135,8 @@ public class Nation{
 
 
 
-    //WAR METHODS
+    //WAR METHODS, more similar to Logic.java, but decided to put it in here.
+    //Seems more personal to each Nation 
 
     public void draft(){
 
@@ -156,7 +173,7 @@ public class Nation{
             // But only if more than 10 people live there
             int toDraft;
 
-            if(f.getPopulation() > 10){
+            if(f.getPopulation() > 100){
                 toDraft = (int) Math.ceil((double) available / totalPopulation * diff);
             } else {
                 toDraft = 0;
