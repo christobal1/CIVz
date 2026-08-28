@@ -7,8 +7,8 @@ public class Main{
     static String gameTitle = "Nations 1.0";
     static File map = new File("Map.txt");
 
-    public static int numCols = 80; //x
-    public static int numRows = 40; //y
+    public static int numCols = 40; //x
+    public static int numRows = 20; //y
     
     public static int numHotBarItems = 5;
 
@@ -19,12 +19,14 @@ public class Main{
 
     public static void main(String[] args) throws InterruptedException{
         //Menu Setup can be commented out
-        Graphic.menuSetup(() ->{
+        AudioManagement.playMusic(AudioManagement.menuMusic);
+
+        //Graphic.menuSetup(() ->{
             Graphic.graphicSetup(numCols, numRows, numHotBarItems, visualWorldMap);
 
             Logic.writeMap();
             Logic.completeWorldMapReset(visualWorldMap);
-            AudioManagement.playSound();
+            AudioManagement.playMusic(AudioManagement.backgroundMusic);
 
             new Thread(() -> {
                 try {
@@ -33,7 +35,7 @@ public class Main{
                     e.printStackTrace();
                 }
             }).start();
-        });
+        //});
 
 
         //Graphics.testFill(visualWorldMap, numRows, numCols);

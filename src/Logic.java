@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import javax.swing.*;
 
+
 public class Logic{
     
     public static Field[][] worldMap = new Field[Main.numCols][Main.numRows];
@@ -49,7 +50,7 @@ public class Logic{
         ArrayList<Field> nFields = new ArrayList<>();
         Nation n = new Nation(nationID, name, nFields, color, startX, startY);
 
-        changeFieldOwner(visualWorldMap, startX, startY, n);
+        moveToField(visualWorldMap, startX, startY, n); //Was once: changeFieldOwner method, normally meant for attacking, but here used as setup for startpoint
         return n;
 
 
@@ -129,7 +130,7 @@ public class Logic{
     //Not for map & terrain building
     //Doesnt go into synchronizeVisual, because that method is currently meant for map building
     //Goes through changeSquareColor directly. Similar mechanism
-    public static void changeFieldOwner(JButton[][] visualWorldMap, int x, int y, Nation newOwner){
+    public static void moveToField(JButton[][] visualWorldMap, int x, int y, Nation newOwner){
 
         Field field = worldMap[x][y];
 
@@ -159,9 +160,7 @@ public class Logic{
 
     /* -------------------------------------------------------------------- */
 
-
-
-
+    //Overall WAR
 
 
 
@@ -169,23 +168,31 @@ public class Logic{
 
     public static String fightForField(int x, int y, Nation attacker){
 
+        AudioManagement.playSFX(AudioManagement.warA);
+
         Nation defender = worldMap[x][y].getOwnerNation();
         int defenderArmy = defender.getArmySize();
 
-        System.out.println(attacker.getName() + " attacks ");
 
         int attackerArmy = attacker.getArmySize();
 
-        System.out.println(defender.getName() + " at (" + x + ", " + y + ")");
+        System.out.println(attacker.getName() + " attacks " + defender.getName() + " at (" + x + ", " + y + ")");
+        //Have to do it mutually
+        attacker.startWarWith(defender);
+        defender.startWarWith(attacker);
+
 
         //attacker wins
         if(attackerArmy > defenderArmy){
             System.out.println("... and wins");
             defender.setLastLostField(new Point(x, y));
-            attacker.setArmySize((int)Math.max(1, Math.round(attackerArmy * 0.7)));
-            defender.setArmySize((int)Math.max(1, Math.round(defenderArmy * 0.5))); //attacker loses less army if he wins, extract these method invocations to other method because mountain and city combat will differ even more
+            attacker.setArmySize((int)Math.max(1, Math.round(attackerArmy - 100)));
+            defender.setArmySize((int)Math.max(1, Math.round(defenderArmy - 150))); //attacker loses less army if he wins, extract these method invocations to other method because mountain and city combat will differ even more
             attacker.truces.put(defender, 10);
             defender.truces.put(attacker, 10);
+
+            attacker.acceptPeace(defender);
+            defender.acceptPeace(attacker);
 
             return "successful";
 
@@ -195,10 +202,13 @@ public class Logic{
             if(randomNum % 2 == 0){
                 System.out.println("... and wins.");
                 defender.setLastLostField(new Point(x, y));
-                attacker.setArmySize((int)Math.round(attackerArmy * 0.4));
-                defender.setArmySize((int)Math.round(defenderArmy * 0.4));
-                attacker.truces.put(defender, 10);
-                defender.truces.put(attacker, 10);
+                attacker.setArmySize((int)Math.round(attackerArmy - 170));
+                defender.setArmySize((int)Math.round(defenderArmy - 170));
+                attacker.truces.put(defender, 50);
+                defender.truces.put(attacker, 50);
+
+                attacker.acceptPeace(defender);
+                defender.acceptPeace(attacker);
  
                 return "successful";
             }
@@ -207,13 +217,17 @@ public class Logic{
         //attacker loses
         System.out.println("... and loses.");
         attacker.setLastLostField(new Point(x, y));
-        attacker.setArmySize(Math.max(1, (int)Math.round(attackerArmy * 0.5)));
-        defender.setArmySize(Math.max(1, (int)Math.round(defenderArmy * 0.9)));
-        attacker.truces.put(defender, 10);
-        defender.truces.put(attacker, 10);
+        attacker.setArmySize(Math.max(1, (int)Math.round(attackerArmy - 150)));
+        defender.setArmySize(Math.max(1, (int)Math.round(defenderArmy - 70)));
+        attacker.truces.put(defender, 50);
+        defender.truces.put(attacker, 50);
+
+        attacker.acceptPeace(defender);
+        defender.acceptPeace(attacker);
 
         return "failed";
     }
+
 
 
     //Field Logic
@@ -237,6 +251,7 @@ public class Logic{
 
         n.draft();
         Graphic.updateHotbarVisual(n);
+      
         
         if(n.lastLostCooldown > 0){
             n.lastLostCooldown --;
@@ -270,7 +285,7 @@ public class Logic{
             return;
         }
 
-        changeFieldOwner(visualWorldMap, p.x, p.y, n);
+        moveToField(visualWorldMap, p.x, p.y, n);
     }
 
 
@@ -437,6 +452,7 @@ public class Logic{
         }
     }
 
+    //Gives a field a score, needed in compare fields. Both of the methods are used in searching of next field
     public static double evaluateField(Nation n, int x, int y){
         
         double score = 0.0;
@@ -457,6 +473,7 @@ public class Logic{
         if (lastLost != null && (lastLost.x == x && lastLost.y == y)){
             return Double.NEGATIVE_INFINITY;
         }
+
         
         //Evaluate by checking truces with the owner nation
         //Use getOrDefault because otherwise Null Pointer Exception, if owner is not in the map.
@@ -470,7 +487,7 @@ public class Logic{
     }
 
 
-    //Swap Array for Bubble Sort
+    //Swapping of array content for Bubble Sort
     public static void swap(int array[][][], int i, int j){
         //swap X
         int tempX = array[i][j][0];

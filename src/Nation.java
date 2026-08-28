@@ -20,9 +20,11 @@ public class Nation{
     int preferedArmySize;
     double totalMoney;
 
+    int warInfo[][] = new int[Main.numHotBarItems-1][2]; //[0] = id of other nation, [0][0] = day of war, [0][1] = own casualties
     int technologyLevel; //for war
 
     HashMap<Nation, Integer> truces = new HashMap<>();
+    ArrayList<Nation> atWarWith = new ArrayList<>();
     
     Nation(int nationID, String name, ArrayList<Field> ownedFields, Color color, int startX, int startY){
         this.nationID = nationID;
@@ -111,6 +113,11 @@ public class Nation{
         this.technologyLevel = newTechnologyLevel;
     }
 
+    public void setWarInfo(Nation otherN, int dayOfWar, int ownCasualties){
+        warInfo[otherN.getNationID()-1][0] = 0;
+        warInfo[otherN.getNationID()-1][1] = 0;
+    }
+
 
 
     //Methods
@@ -173,7 +180,7 @@ public class Nation{
             // But only if more than 10 people live there
             int toDraft;
 
-            if(f.getPopulation() > 100){
+            if(f.getPopulation() > 50){
                 toDraft = (int) Math.ceil((double) available / totalPopulation * diff);
             } else {
                 toDraft = 0;
@@ -212,6 +219,28 @@ public class Nation{
     }
 
 
+    //Instead of declareWar() and getDeclaredOn() use this method which combines both. Both nations have to call it.
+    public void startWarWith(Nation n2){
+
+        atWarWith.add(n2);
+        setWarInfo(n2, 0, 0); //prepare war info before attacking
+
+        System.out.println("A war started between:" + this.getName() + " and " + n2.getName());
+        //...
+    }
+
+
+    public void proposePeace(Nation n2){
+        
+    }
+
+    public void acceptPeace(Nation n2){
+
+        atWarWith.remove(n2);
+        setWarInfo(n2, 0, 0); //reset war info
+
+        System.out.println("The war between " + this.getName() + " and " + n2.getName() + " ended");
+    }
 
 
 
