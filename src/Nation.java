@@ -18,13 +18,16 @@ public class Nation{
     int armySize;
     int armyEquipmentLevel;
     int preferedArmySize;
-    double totalMoney;
+    double bankMoney;
 
-    int warInfo[][] = new int[Main.numHotBarItems-1][2]; //[0] = id of other nation, [0][0] = day of war, [0][1] = own casualties
     int technologyLevel; //for war
+    int warInfo[][] = new int[Main.numHotBarItems-1][2]; //[0] = id of other nation, [0][0] = day of war, [0][1] = own casualties
+    boolean atWar; //whether the nation is at war
 
-    HashMap<Nation, Integer> truces = new HashMap<>();
     ArrayList<Nation> atWarWith = new ArrayList<>();
+    HashMap<Nation, Integer> truces = new HashMap<>();
+    
+    
     
     Nation(int nationID, String name, ArrayList<Field> ownedFields, Color color, int startX, int startY){
         this.nationID = nationID;
@@ -35,9 +38,10 @@ public class Nation{
         this.startY = startY;
         this.lastLostField = null;
         this.armySize = 0;
-        this.totalMoney = 0.0;
+        this.bankMoney = 0.0;
         this.preferedArmySize = calculatePreferedArmySize();
         this.armyEquipmentLevel = 0;
+        this.atWar = false;
     }
 
 
@@ -87,6 +91,16 @@ public class Nation{
         return totalPopulation;
     }
 
+    //Returns whether nation is at war or not
+    public boolean getAtWar(){
+        return atWar;
+    }
+
+    public int getFieldCount(){
+        
+        return this.ownedFields.size();
+    }
+
 
 
 
@@ -114,8 +128,12 @@ public class Nation{
     }
 
     public void setWarInfo(Nation otherN, int dayOfWar, int ownCasualties){
-        warInfo[otherN.getNationID()-1][0] = 0;
-        warInfo[otherN.getNationID()-1][1] = 0;
+        warInfo[otherN.getNationID()-1][0] = dayOfWar;
+        warInfo[otherN.getNationID()-1][1] = ownCasualties;
+    }
+
+    public void setAtWar(boolean state){
+        this.atWar = state;
     }
 
 
@@ -207,15 +225,9 @@ public class Nation{
 
 
 
-    public double getTotalMoney(){
+    public double getBankMoney(){
 
-        totalMoney = 0.0;
-
-        for (Field f: ownedFields){
-            totalMoney += f.getDailyMoney();
-        }
-
-        return totalMoney;
+        return bankMoney;
     }
 
 
@@ -223,7 +235,8 @@ public class Nation{
     public void startWarWith(Nation n2){
 
         atWarWith.add(n2);
-        setWarInfo(n2, 0, 0); //prepare war info before attacking
+        this.setAtWar(true);
+        this.setWarInfo(n2, 0, 0); //prepare war info before attacking
 
         System.out.println("A war started between:" + this.getName() + " and " + n2.getName());
         //...
@@ -237,7 +250,8 @@ public class Nation{
     public void acceptPeace(Nation n2){
 
         atWarWith.remove(n2);
-        setWarInfo(n2, 0, 0); //reset war info
+        this.setAtWar(false);
+        this.setWarInfo(n2, 0, 0); //reset war info
 
         System.out.println("The war between " + this.getName() + " and " + n2.getName() + " ended");
     }

@@ -11,6 +11,7 @@ public class Main{
     public static int numRows = 20; //y
     
     public static int numHotBarItems = 5;
+    public static int rounds = 2000;
 
     static JButton[][] visualWorldMap = new JButton[numCols][numRows];
     static JLabel[] hotBar = new JLabel[numHotBarItems];
@@ -21,7 +22,7 @@ public class Main{
         //Menu Setup can be commented out
         AudioManagement.playMusic(AudioManagement.menuMusic);
 
-        //Graphic.menuSetup(() ->{
+        Graphic.menuSetup(() ->{
             Graphic.graphicSetup(numCols, numRows, numHotBarItems, visualWorldMap);
 
             Logic.writeMap();
@@ -35,7 +36,7 @@ public class Main{
                     e.printStackTrace();
                 }
             }).start();
-        //});
+        });
 
 
         //Graphics.testFill(visualWorldMap, numRows, numCols);

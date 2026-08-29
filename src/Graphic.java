@@ -149,7 +149,7 @@ public class Graphic{
             "<font color='" + hex + "'>" +
             "pop: " + Integer.toString(n.getTotalPopulation()) + "<br>"
             + "army: " + Integer.toString(n.getArmySize()) + "<br>"
-            + "$: " + Double.toString(n.getTotalMoney())
+            + "$: " + Double.toString(n.getBankMoney())
             + "</html>"
         );
     }

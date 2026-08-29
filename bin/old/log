@@ -9,9 +9,6 @@ import javax.swing.*;
 
 
 public class Logic{
-
-    //stage 1: everyone grabs land and no war, stage 2: wars possible
-    static int stage = 1;
     
     public static Field[][] worldMap = new Field[Main.numCols][Main.numRows];
     public static ArrayList <Nation> nationList = new ArrayList<>();
@@ -21,15 +18,12 @@ public class Logic{
         
         Nation n1 = createNation(visualWorldMap, 1, "Coolistan", 0, 0, Graphic.red);
         Nation n2 = createNation(visualWorldMap, 2, "Fooleria", Main.numCols-1, Main.numRows-1, Graphic.darkBlue);
+
         Nation n3 = createNation(visualWorldMap, 3, "Usbonia", 0, Main.numRows-1, Graphic.pink);
         Nation n4 = createNation(visualWorldMap, 4, "Giantopia", Main.numCols-1, 0, Graphic.green);
 
 
-        for(int i=0; i<Main.rounds; i++){ // 2000
-
-            if(i == Math.round(Main.rounds/10)){
-                stage = 2;
-            }
+        for(int i=0; i<3000; i++){ // 2000
 
             Thread.sleep(50); // 50
 
@@ -115,6 +109,14 @@ public class Logic{
 
 
 
+
+
+
+
+
+
+
+
     //Changes information of one square
     //Meant for map & terrain building
     //Because no owner will be set, only field type (fType)
@@ -123,114 +125,9 @@ public class Logic{
         worldMap[x][y].fType = fType; //does this work ???
         Graphic.synchronizeVisual(visualWorldMap, x, y, fType);
     }
-    
 
 
-
-
-    /* -------------------------------------------------------------------- */
-
-    //Overall WAR
-
-
-
-    //BOT WAR METHODS
-
-
-
-
-
-
-
-
-
-    //move to other square based on search
-    public static void makeMove(JButton[][] visualWorldMap, Nation n){
-
-        if(stage == 1){
-            Point p = searchFreeField(n);
-            if(p == null) return;
-            moveToField(visualWorldMap, p.x, p.y, n);
-        } else {
-            //so if: stage == 2
-            if(n.getAtWar() == false){
-                considerWar(n);
-            } else {
-                n.draft();
-            }
-        }
-
-        Graphic.updateHotbarVisual(n);
-      
-        if(n.lastLostCooldown > 0){
-            n.lastLostCooldown --;
-            if(n.lastLostCooldown == 0){
-                n.lastLostField = null;
-            }
-        }
-
-        //Update truces every time
-        //Reduce, but when 0 then remove Nation from truces HashMap completely
-        Iterator<Map.Entry<Nation, Integer>> it = n.truces.entrySet().iterator();
-        while(it.hasNext()){
-            Map.Entry<Nation, Integer> entry = it.next();
-
-            int newVal = entry.getValue() - 1;
-
-            if(newVal <= 0){
-                it.remove();
-            } else {
-                entry.setValue(newVal);
-            }
-        } 
-    }
-
-
-
-
-    public static void considerWar(Nation aggressorN){
-        
-        for(Nation otherN: nationList){
-            //If both are at peace and dont have a peace treaty
-            if(aggressorN.getAtWar() == false && otherN.getAtWar() == false && (!aggressorN.truces.containsKey(otherN))){
-                double score = 0.0;
-
-                int aggressorPop = aggressorN.getTotalPopulation();
-                double aggressorMoney = aggressorN.getBankMoney();
-                int aggressorArmy = aggressorN.getArmySize();
-                int aggressorFieldCount = aggressorN.getFieldCount();
-
-                int otherPop = otherN.getTotalPopulation();
-                double otherMoney = otherN.getBankMoney();
-                int otherArmy = otherN.getArmySize();
-                int otherFieldCount = otherN.getFieldCount();
-
-                if(aggressorPop > 1.2 * otherPop){
-                    score += 15;
-                }
-
-                if(aggressorMoney > 1.2 * otherMoney){
-                    score += 10;
-                }
-
-                if(aggressorArmy > 1.5 * otherArmy){
-                    score += 50;
-                }
-
-                if(aggressorFieldCount < 0.8 * otherFieldCount){
-                    score += 30;
-                }
-
-                if(score > 100){
-                    aggressorN.startWarWith(otherN);
-                    otherN.startWarWith(aggressorN);
-                }
-            }
-        }
-    }
-
-
-    //Changes information of one square, kind of like changeOneSquareOnWorldMap
+    //Changes information of one square
     //Meant for changing of ownership after fight
     //Not for map & terrain building
     //Doesnt go into synchronizeVisual, because that method is currently meant for map building
@@ -255,9 +152,63 @@ public class Logic{
                 Graphic.changeSquareColor(visualWorldMap, x, y, newOwner.color);
             }
         }
+
+        
     }
 
 
+
+
+
+    /* -------------------------------------------------------------------- */
+
+    //Overall WAR
+
+
+
+    //BOT WAR METHODS
+
+    //consideration takes place from the aggressors side
+    public static void considerWar(Nation aggressorN){
+        
+        for(Nation otherN: nationList){
+            if(aggressorN.getAtWar() == false && otherN.getAtWar() == false){
+                double score = 0.0;
+
+                int aggressorPop = aggressorN.getTotalPopulation();
+                double aggressorMoney = aggressorN.getBankMoney();
+                int aggressorArmy = aggressorN.getArmySize();
+                int aggressorFieldCount = aggressorN.getFieldCount();
+
+                int otherPop = otherN.getTotalPopulation();
+                double otherMoney = otherN.getBankMoney();
+                int otherArmy = otherN.getArmySize();
+                int otherFieldCount = otherN.getFieldCount();
+
+                if(aggressorPop > 1.2 * otherPop){
+                    score += 15;
+                }
+
+                if(aggressorMoney > 1.2 * otherMoney){
+                    score += 10;
+                }
+
+                if(aggressorArmy > 1.5 * otherArmy){
+                    score += 50;
+                }
+
+                if(aggressorFieldCount < 0.8 * otherArmy){
+                    score += 30;
+                }
+
+                if(score > 100){
+                    aggressorN.startWarWith(otherN);
+                    otherN.startWarWith(aggressorN);
+                }
+            }
+        }
+        
+    }
 
 
     public static String fightForField(int x, int y, Nation attacker){
@@ -267,12 +218,14 @@ public class Logic{
         Nation defender = worldMap[x][y].getOwnerNation();
         int defenderArmy = defender.getArmySize();
 
+
         int attackerArmy = attacker.getArmySize();
 
         System.out.println(attacker.getName() + " attacks " + defender.getName() + " at (" + x + ", " + y + ")");
         //Have to do it mutually
         attacker.startWarWith(defender);
         defender.startWarWith(attacker);
+
 
         //attacker wins
         if(attackerArmy > defenderArmy){
@@ -320,51 +273,65 @@ public class Logic{
         return "failed";
     }
 
-    //If at war with a nation, n will look for fields of its enemy
-    //Build a list of fields that lie to a certain direction of n
-    public static Point searchEnemyFront(Nation n){
 
-        int sizeOfOwnedArray = (n.ownedFields).size();
-        ArrayList<Field> enemyIsNorth = new ArrayList<>();
-        ArrayList<Field> enemyIsEast = new ArrayList<>();
-        ArrayList<Field> enemyIsSouth = new ArrayList<>();
-        ArrayList<Field> enemyIsWest = new ArrayList<>();
 
-        //For every field that n owns, check where the enemy is: N,E,S,W
-        //No need for legality check, because here only owned fields get checked
-        //sea or out of map cant be owned = no risk.
-        for(int i=0; i<sizeOfOwnedArray; i++){
-            Field temp = (n.ownedFields).get(i);
-            int x = temp.getFieldCoordX();
-            int y = temp.getFieldCoordY();
+    //Field Logic
+    //Info shown when click on fields
+    //The Event Listeners in Graphic.java use this method
+    //Is it weird to have this method? Maybe there's a better way ?
+    public static String matchVisualCoordsToRealCoords(int x, int y){
 
-            Field north = worldMap[x][y+1];
-            Field east = worldMap[x+1][y];
-            Field south = worldMap[x][y-1];
-            Field west = worldMap[x-1][y];
+        if(checkFieldLegality(x, y) == true){
+            return worldMap[x][y].getFieldInfo();
+        } else {
+            return "illegal coordinates";
+        }
+    }
 
-            //If the list of enemies of n contains the owner of the neighbor field of n, add it to the list.
-            if((n.atWarWith).contains(north.getOwnerNation())){
-                enemyIsNorth.add(north);
-            } else if ((n.atWarWith).contains(east.getOwnerNation())){
-                enemyIsEast.add(east);
-            } else if ((n.atWarWith).contains(south.getOwnerNation())){
-                enemyIsSouth.add(south);
-            } else if ((n.atWarWith).contains(west.getOwnerNation())){
-                enemyIsWest.add(west);
+
+
+
+    //move to other square based on search
+    public static void makeMove(JButton[][] visualWorldMap, Nation n){
+
+        n.draft();
+        Graphic.updateHotbarVisual(n);
+      
+        
+        if(n.lastLostCooldown > 0){
+            n.lastLostCooldown --;
+            if(n.lastLostCooldown == 0){
+                n.lastLostField = null;
             }
         }
 
 
-        //Now compare the difference of the furthest fields of each direction
-        //the biggest difference means the largest front is there
+
+        //Update truces every time
+        //Reduce, but when 0 then remove Nation from truces HashMap completely
+        Iterator<Map.Entry<Nation, Integer>> it = n.truces.entrySet().iterator();
+        while(it.hasNext()){
+            Map.Entry<Nation, Integer> entry = it.next();
+
+            int newVal = entry.getValue() - 1;
+
+            if(newVal <= 0){
+                it.remove();
+            } else {
+                entry.setValue(newVal);
+            }
+        }
+
+
         
+        Point p = searchNextSquare(n);
 
+        if(p == null){ //do nothing
+            return;
+        }
 
-
-        return new Point(3,2);
+        moveToField(visualWorldMap, p.x, p.y, n);
     }
-
 
 
 
@@ -372,7 +339,7 @@ public class Logic{
     //Put the coordinates of the surrounding fields in a 3d array
     //After that rank them and sort some out according to legality
     //An other method will be invoked for this!
-    public static Point searchFreeField(Nation n){
+    public static Point searchNextSquare(Nation n){
         int sizeOfOwnedArray = (n.ownedFields).size();
         int[][][] potentialNextCoords = new int[sizeOfOwnedArray][4][2];
         int[][][] rankedNextCoords = new int[sizeOfOwnedArray][4][2];
@@ -480,6 +447,7 @@ public class Logic{
             double score = evaluateField(n, x, y);
             if(score == Double.NEGATIVE_INFINITY) continue;
 
+
             if(bestX == -1){
                 bestX = x;
                 bestY = y;
@@ -494,11 +462,27 @@ public class Logic{
 
         //System.out.println("Best Move: " + bestX + " " + bestY);
 
+
+        
+        //After sorting
+        /*
+        for(int i=0; i<sizeOfOwnedArray; i++){
+            System.out.println("Coordinates ranked:");
+            for(int j=0; j<4; j++){
+                for(int k=0; k<2; k++){
+                    System.out.print(rankedNextCoords[i][j][k] + " ");
+                }
+                System.out.println(matchVisualCoordsToRealCoords(rankedNextCoords[i][j][0], rankedNextCoords[i][j][1]));
+            }
+        } */
+       
+        //Do nothing if situation not good
         if (bestX == -1){
             return null;
         }
 
         return new Point(bestX, bestY);
+
     }
 
 
@@ -513,14 +497,14 @@ public class Logic{
         }
     }
 
-
     //Gives a field a score, needed in compare fields. Both of the methods are used in searching of next field
     public static double evaluateField(Nation n, int x, int y){
         
         double score = 0.0;
 
         Field f = worldMap[x][y];
-        
+        Point lastLost = n.getLastLostField();
+
         double money = f.getDailyMoney();
         int pop = f.getPopulation();
         int dist = (Math.abs(n.getStartX() - x)) + Math.abs(n.getStartY() - y);
@@ -530,12 +514,21 @@ public class Logic{
         score += money * 0.5;
         score += pop * 0.2;
 
-        if(f.getOwnerNation() != null && f.getOwnerNation() != n){
+        //If this coordinate is the last lost one, change to HashMap for more avoidance of those last lost fields, perhaps link to playstyle of bot
+        if (lastLost != null && (lastLost.x == x && lastLost.y == y)){
             return Double.NEGATIVE_INFINITY;
         }
- 
-        return score;
+
         
+        //Evaluate by checking truces with the owner nation
+        //Use getOrDefault because otherwise Null Pointer Exception, if owner is not in the map.
+        Nation owner = f.getOwnerNation();
+        if((n.truces).getOrDefault(owner, 0) > 0){
+            return Double.NEGATIVE_INFINITY;
+        }
+
+        return score;
+
     }
 
 
@@ -569,14 +562,17 @@ public class Logic{
             return false;
         }
 
+        //Add: if my field, then illegal to claim
+
         return true;
     }
-
 
     //Checks whether it is a nations own field
     public static boolean isOwnField(int x, int y, Nation n){
 
-        return (worldMap[x][y].getOwnerNation() == n);
+        Field field = worldMap[x][y];
+        
+        return field.ownerNation == n;
     }
     
 
@@ -593,20 +589,7 @@ public class Logic{
 
 
 
-    //Weird
 
-    //Field Logic
-    //Info shown when click on fields
-    //The Event Listeners in Graphic.java use this method
-    //Is it weird to have this method? Maybe there's a better way ?
-    public static String matchVisualCoordsToRealCoords(int x, int y){
-
-        if(checkFieldLegality(x, y) == true){
-            return worldMap[x][y].getFieldInfo();
-        } else {
-            return "illegal coordinates";
-        }
-    }
 
 
 
