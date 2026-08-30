@@ -25,6 +25,7 @@ public class Logic{
         Nation n3 = createNation(visualWorldMap, 3, "Usbonia", 0, Main.numRows-1, Graphic.pink);
         Nation n4 = createNation(visualWorldMap, 4, "Giantopia", Main.numCols-1, 0, Graphic.green);
 
+        n1.moveArmyTo(new Point(1,2));
 
         for(int i=0; i<Main.rounds; i++){ // 2000
             dayCounter++;
@@ -225,60 +226,48 @@ public class Logic{
         AudioManagement.playSFX(AudioManagement.warA);
 
         Nation defender = worldMap[x][y].getOwnerNation();
+        int attackerArmy = attacker.getArmySize();
         int defenderArmy = defender.getArmySize();
 
-        int attackerArmy = attacker.getArmySize();
-
         System.out.println(attacker.getName() + " attacks " + defender.getName() + " at (" + x + ", " + y + ")");
-        //Have to do it mutually
-        attacker.startWarWith(defender);
+        attacker.startWarWith(defender); //do it mututally
         defender.startWarWith(attacker);
 
         //attacker wins
         if(attackerArmy > defenderArmy){
-            System.out.println("... and wins");
-            defender.setLastLostField(new Point(x, y));
-            attacker.setArmySize((int)Math.max(1, Math.round(attackerArmy - 100)));
-            defender.setArmySize((int)Math.max(1, Math.round(defenderArmy - 150))); //attacker loses less army if he wins, extract these method invocations to other method because mountain and city combat will differ even more
-            attacker.truces.put(defender, 10);
-            defender.truces.put(attacker, 10);
-
-            attacker.acceptPeace(defender);
-            defender.acceptPeace(attacker);
-
+            fightOutCome(attacker, defender, "and wins", 100, 150, x, y);
             return "successful";
 
-        //random chance of winning / losing
         } else if (attackerArmy == defenderArmy){
-            int randomNum = (int)(Math.random() * 10);
+            int randomNum = (int)(Math.random() * 10); //random chance of winning / losing
             if(randomNum % 2 == 0){
-                System.out.println("... and wins.");
-                defender.setLastLostField(new Point(x, y));
-                attacker.setArmySize((int)Math.round(attackerArmy - 170));
-                defender.setArmySize((int)Math.round(defenderArmy - 170));
-                attacker.truces.put(defender, 50);
-                defender.truces.put(attacker, 50);
-
-                attacker.acceptPeace(defender);
-                defender.acceptPeace(attacker);
- 
+                fightOutCome(attacker, defender, "and wins", 170, 170, x, y);
                 return "successful";
             }
         }
 
         //attacker loses
-        System.out.println("... and loses.");
-        attacker.setLastLostField(new Point(x, y));
-        attacker.setArmySize(Math.max(1, (int)Math.round(attackerArmy - 150)));
-        defender.setArmySize(Math.max(1, (int)Math.round(defenderArmy - 70)));
-        attacker.truces.put(defender, 50);
-        defender.truces.put(attacker, 50);
-
-        attacker.acceptPeace(defender);
-        defender.acceptPeace(attacker);
-
+        fightOutCome(attacker, defender, "and wins", 160, 70, x, y);
         return "failed";
     }
+
+
+    //Frame for when a fight is finished
+    public static void fightOutCome(Nation winner, Nation loser, String message, int winnerArmyReduction, int loserArmyReduction, int x, int y){
+        int winnerArmy = winner.getArmySize();
+        int loserArmy = loser.getArmySize();
+        
+        System.out.println("... and wins");
+        loser.setLastLostField(new Point(x, y));
+        winner.setArmySize((int)Math.max(1, Math.round(winnerArmy - winnerArmyReduction)));
+        loser.setArmySize((int)Math.max(1, Math.round(loserArmy - loserArmyReduction))); //attacker loses less army if he wins, extract these method invocations to other method because mountain and city combat will differ even more
+        winner.truces.put(loser, 10);
+        loser.truces.put(winner, 10);
+
+    }
+
+
+
 
     //If at war with a nation, n will look for fields of its enemy
     //Build a list of fields that lie to a certain direction of n

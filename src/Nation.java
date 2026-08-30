@@ -25,6 +25,7 @@ public class Nation{
     boolean atWar; //whether the nation is at war or not
     boolean readyForPeace; //for peace propositions, acceptations...
     int casualties; //tracks casualties for Logic.fightForField() and Logic.makeMove()
+    int armyPosition[] = new int[2]; //tracks army on worldMap
 
     ArrayList<Nation> atWarWith = new ArrayList<>();
     HashMap<Nation, Integer> truces = new HashMap<>();
@@ -246,6 +247,12 @@ public class Nation{
     }
 
 
+    public void moveArmyTo(Point p){
+        armyPosition[0] = p.x;
+        armyPosition[1] = p.y;
+
+        Main.visualWorldMap[p.x][p.y].setText("A" + this.getNationID());
+    }
 
 
     public void considerWar(){
@@ -305,8 +312,8 @@ public class Nation{
     //To end the war
     public void considerPeace(){
         
-        int myLosses = this.warInfo[this.getNationID()][0];
-        int dayOfWar = this.warInfo[this.getNationID()][1];
+        int myLosses = this.warInfo[this.getNationID()-1][0];
+        int dayOfWar = this.warInfo[this.getNationID()-1][1];
 
         if((myLosses > 1000) && (dayOfWar > 20)){
             this.readyForPeace = true;
