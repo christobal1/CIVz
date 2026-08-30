@@ -331,8 +331,66 @@ public class Logic{
             //now get where the most fields are:
             
         }
-        
+
         return Collections.max(dirs.entrySet(), Map.Entry.comparingByValue()).getKey();
+    }
+
+
+    //plans out the moves an army makes
+    //used by makeMove() after getting the direction of enemy-front from searchEnemyFront()
+    public static ArrayList<Point> planArmyMovement(Nation n, Direction dir){
+
+        ArrayList <Point> movePlan = new ArrayList<>();
+
+        if(dir == Direction.north){
+            Point start = findClosestOwnedFieldToAPoint(n, (new Point(0,0))); //upper left corner
+            movePlan.add(start);
+            //movePlan.add();
+
+        } else if (dir == Direction.east){
+            Point start = findClosestOwnedFieldToAPoint(n, new Point(Main.numCols, 0)); //upper right corner
+            movePlan.add(start);
+            //movePlan.add();
+
+        } else if (dir == Direction.south){
+            Point start = findClosestOwnedFieldToAPoint(n, new Point(new Point(Main.numCols, Main.numRows))); //lower right corner
+            movePlan.add(start);
+            //movePlan.add();
+
+        } else if (dir == Direction.west){
+            Point start = findClosestOwnedFieldToAPoint(n, new Point(new Point(0, Main.numRows))); //lower left corner
+            movePlan.add(start);
+            //movePlan.add();
+        }
+
+        return movePlan;
+    }
+
+    
+    //Universally useable
+    //Used for planArmyMovement()
+    public static Point findClosestOwnedFieldToAPoint(Nation n, Point p){
+    
+        Field f1 = worldMap[p.x][p.y];
+
+        Point closest = null;
+        double minDistance = Double.MAX_VALUE;
+
+        int targetX = f1.getFieldCoordX();
+        int targetY = f1.getFieldCoordY();
+
+        for(Field f: n.ownedFields){
+            int x = f.getFieldCoordX();
+            int y = f.getFieldCoordY();
+
+            double dist = Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2));
+
+            if(dist < minDistance){
+                minDistance = dist;
+                closest = new Point(x, y);
+            }
+        }
+        return closest;
     }
 
 
@@ -377,19 +435,6 @@ public class Logic{
             potentialNextCoords[i][3][1] = westY;
         }
 
-        //Before sorting
-        /**
-        for(int i=0; i<sizeOfOwnedArray; i++){
-            System.out.println("Coordinates unranked:");
-            for(int j=0; j<4; j++){
-                for(int k=0; k<2; k++){
-                    System.out.print(potentialNextCoords[i][j][k] + " ");
-                }
-                System.out.println(matchVisualCoordsToRealCoords(potentialNextCoords[i][j][0], potentialNextCoords[i][j][1]));
-            }
-        } */
-
-
         //Copy Array 
         for(int i=0; i<sizeOfOwnedArray; i++){
             for(int j=0; j<4; j++){
@@ -397,7 +442,6 @@ public class Logic{
                 rankedNextCoords[i][j][1] = potentialNextCoords[i][j][1];
             }
         }
-
 
         //Bubble Sort inside each of the NESW fields
         for(int i=0; i<sizeOfOwnedArray; i++){
