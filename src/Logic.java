@@ -17,6 +17,13 @@ public class Logic{
     public static ArrayList <Nation> nationList = new ArrayList<>();
     public static int dayCounter = 0; //tracks i from round loop, makes it public
 
+    public static enum Direction{
+        north,
+        east,
+        south,
+        west
+    }
+
     
     public static void startGame(JButton[][] visualWorldMap) throws InterruptedException {
         
@@ -155,7 +162,9 @@ public class Logic{
                 n.considerWar();
             } else { //if at war:
                 n.considerPeace();
+                //daysAtWarCounter++;
                 n.setWarInfo(n, dayCounter, n.getCasualties()); //update war info // implement correctly !!!
+                //dayCounter usage here is wrong, because each normal day is counted as a day of war currently
             }
         }
 
@@ -186,6 +195,14 @@ public class Logic{
         } 
     }
 
+
+    public static void findPath(Nation n, Point start, Point end, boolean goThroughEnemyTerritory){
+
+        if(goThroughEnemyTerritory == true){
+            Nation enemy = n.atWarWith.get(0);
+
+        }
+    }
 
 
 
@@ -271,13 +288,16 @@ public class Logic{
 
     //If at war with a nation, n will look for fields of its enemy
     //Build a list of fields that lie to a certain direction of n
-    public static Point searchEnemyFront(Nation n){
+    public static Direction searchEnemyFront(Nation n){
 
         int sizeOfOwnedArray = (n.ownedFields).size();
         ArrayList<Field> enemyIsNorth = new ArrayList<>();
         ArrayList<Field> enemyIsEast = new ArrayList<>();
         ArrayList<Field> enemyIsSouth = new ArrayList<>();
         ArrayList<Field> enemyIsWest = new ArrayList<>();
+
+        //How many enemy fields are in a certain direction
+        HashMap<Direction, Integer> dirs = new HashMap<>();
 
         //For every field that n owns, check where the enemy is: N,E,S,W
         //No need for legality check, because here only owned fields get checked
@@ -292,26 +312,27 @@ public class Logic{
             Field south = worldMap[x][y-1];
             Field west = worldMap[x-1][y];
 
-            //If the list of enemies of n contains the owner of the neighbor field of n, add it to the list.
+            //If the list of enemies of Nation n contains the owner of the neighbor field of n, add it to the list.
             if((n.atWarWith).contains(north.getOwnerNation())){
                 enemyIsNorth.add(north);
+                dirs.put(Direction.north, enemyIsNorth.size());
             } else if ((n.atWarWith).contains(east.getOwnerNation())){
                 enemyIsEast.add(east);
+                dirs.put(Direction.east, enemyIsEast.size());
             } else if ((n.atWarWith).contains(south.getOwnerNation())){
                 enemyIsSouth.add(south);
+                dirs.put(Direction.south, enemyIsSouth.size());
             } else if ((n.atWarWith).contains(west.getOwnerNation())){
                 enemyIsWest.add(west);
+                dirs.put(Direction.west, enemyIsWest.size());
             }
+
+            //dirs now contains the direction and how many enemy fields are there
+            //now get where the most fields are:
+            
         }
-
-
-        //Now compare the difference of the furthest fields of each direction
-        //the biggest difference means the largest front is there
         
-
-
-
-        return new Point(3,2);
+        return Collections.max(dirs.entrySet(), Map.Entry.comparingByValue()).getKey();
     }
 
 
