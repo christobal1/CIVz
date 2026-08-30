@@ -15,6 +15,7 @@ public class Logic{
     
     public static Field[][] worldMap = new Field[Main.numCols][Main.numRows];
     public static ArrayList <Nation> nationList = new ArrayList<>();
+    public static int dayCounter = 0; //tracks i from round loop, makes it public
 
     
     public static void startGame(JButton[][] visualWorldMap) throws InterruptedException {
@@ -26,6 +27,7 @@ public class Logic{
 
 
         for(int i=0; i<Main.rounds; i++){ // 2000
+            dayCounter++;
 
             if(i == Math.round(Main.rounds/10)){
                 stage = 2;
@@ -61,7 +63,6 @@ public class Logic{
         moveToField(visualWorldMap, startX, startY, n); //Was once: changeFieldOwner method, normally meant for attacking, but here used as setup for startpoint
         return n;
 
-
     }
 
 
@@ -83,7 +84,6 @@ public class Logic{
                     System.out.println("Wrong format of numbers in map file");
                     continue;
                 }
-
 
                 try{
                     int x = Integer.parseInt(parts[0]);
@@ -107,9 +107,6 @@ public class Logic{
             System.out.println("An error occured while reading the file");
             e.printStackTrace();
         }
-
-
-
     }
 
 
@@ -147,18 +144,21 @@ public class Logic{
     //move to other square based on search
     public static void makeMove(JButton[][] visualWorldMap, Nation n){
 
-        if(stage == 1){
+        if(stage == 1){ //no wars, just free land grabbing
             Point p = searchFreeField(n);
             if(p == null) return;
             moveToField(visualWorldMap, p.x, p.y, n);
         } else {
-            //so if: stage == 2
+            //so if: stage == 2, war possible
             if(n.getAtWar() == false){
-                considerWar(n);
-            } else {
-                n.draft();
+                n.considerWar();
+            } else { //if at war:
+                n.considerPeace();
+                n.setWarInfo(n, dayCounter, n.getCasualties()); //update war info // implement correctly !!!
             }
         }
+
+        n.draft();
 
         Graphic.updateHotbarVisual(n);
       
@@ -188,46 +188,6 @@ public class Logic{
 
 
 
-    public static void considerWar(Nation aggressorN){
-        
-        for(Nation otherN: nationList){
-            //If both are at peace and dont have a peace treaty
-            if(aggressorN.getAtWar() == false && otherN.getAtWar() == false && (!aggressorN.truces.containsKey(otherN))){
-                double score = 0.0;
-
-                int aggressorPop = aggressorN.getTotalPopulation();
-                double aggressorMoney = aggressorN.getBankMoney();
-                int aggressorArmy = aggressorN.getArmySize();
-                int aggressorFieldCount = aggressorN.getFieldCount();
-
-                int otherPop = otherN.getTotalPopulation();
-                double otherMoney = otherN.getBankMoney();
-                int otherArmy = otherN.getArmySize();
-                int otherFieldCount = otherN.getFieldCount();
-
-                if(aggressorPop > 1.2 * otherPop){
-                    score += 15;
-                }
-
-                if(aggressorMoney > 1.2 * otherMoney){
-                    score += 10;
-                }
-
-                if(aggressorArmy > 1.5 * otherArmy){
-                    score += 50;
-                }
-
-                if(aggressorFieldCount < 0.8 * otherFieldCount){
-                    score += 30;
-                }
-
-                if(score > 100){
-                    aggressorN.startWarWith(otherN);
-                    otherN.startWarWith(aggressorN);
-                }
-            }
-        }
-    }
 
 
     //Changes information of one square, kind of like changeOneSquareOnWorldMap

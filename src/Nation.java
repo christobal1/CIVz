@@ -21,8 +21,10 @@ public class Nation{
     double bankMoney;
 
     int technologyLevel; //for war
-    int warInfo[][] = new int[Main.numHotBarItems-1][2]; //[0] = id of other nation, [0][0] = day of war, [0][1] = own casualties
-    boolean atWar; //whether the nation is at war
+    int warInfo[][] = new int[Main.numHotBarItems-1][2]; //[] = id of other nation, [][0] = day of war, [][1] = own casualties
+    boolean atWar; //whether the nation is at war or not
+    boolean readyForPeace; //for peace propositions, acceptations...
+    int casualties; //tracks casualties for Logic.fightForField() and Logic.makeMove()
 
     ArrayList<Nation> atWarWith = new ArrayList<>();
     HashMap<Nation, Integer> truces = new HashMap<>();
@@ -42,6 +44,7 @@ public class Nation{
         this.preferedArmySize = calculatePreferedArmySize();
         this.armyEquipmentLevel = 0;
         this.atWar = false;
+        this.casualties = 0;
     }
 
 
@@ -97,10 +100,20 @@ public class Nation{
     }
 
     public int getFieldCount(){
-        
         return this.ownedFields.size();
     }
 
+    public double getBankMoney(){
+        return bankMoney;
+    }
+
+    public int getCasualties(){
+        return casualties;
+    }
+
+
+
+    /* -------------------------------------------------------------------- */
 
 
 
@@ -135,6 +148,17 @@ public class Nation{
     public void setAtWar(boolean state){
         this.atWar = state;
     }
+
+    public void setCasualties(int newCasualtyCount){
+        this.casualties = newCasualtyCount;
+    }
+
+
+
+
+
+    /* -------------------------------------------------------------------- */
+
 
 
 
@@ -224,14 +248,49 @@ public class Nation{
 
 
 
+    public void considerWar(){
+        
+        for(Nation otherN: Logic.nationList){
+            //If both are at peace and dont have a peace treaty
+            if(this.getAtWar() == false && otherN.getAtWar() == false && (!this.truces.containsKey(otherN))){
+                double score = 0.0;
 
-    public double getBankMoney(){
+                int aggressorPop = this.getTotalPopulation();
+                double aggressorMoney = this.getBankMoney();
+                int aggressorArmy = this.getArmySize();
+                int aggressorFieldCount = this.getFieldCount();
 
-        return bankMoney;
+                int otherPop = otherN.getTotalPopulation();
+                double otherMoney = otherN.getBankMoney();
+                int otherArmy = otherN.getArmySize();
+                int otherFieldCount = otherN.getFieldCount();
+
+                if(aggressorPop > otherPop){
+                    score += 30;
+                }
+
+                if(aggressorMoney >  otherMoney){
+                    score += 30;
+                }
+
+                if(aggressorArmy > otherArmy){
+                    score += 101;
+                }
+
+                if(aggressorFieldCount <  otherFieldCount){
+                    score += 30;
+                }
+
+                if(score > 100){
+                    this.startWarWith(otherN);
+                    otherN.startWarWith(this);
+                }
+            }
+        }
     }
 
 
-    //Instead of declareWar() and getDeclaredOn() use this method which combines both. Both nations have to call it.
+     //Instead of declareWar() and getDeclaredOn() use this method which combines both. Both nations have to call it.
     public void startWarWith(Nation n2){
 
         atWarWith.add(n2);
@@ -243,18 +302,42 @@ public class Nation{
     }
 
 
+    //To end the war
+    public void considerPeace(){
+        
+        int myLosses = this.warInfo[this.getNationID()][0];
+        int dayOfWar = this.warInfo[this.getNationID()][1];
+
+        if((myLosses > 1000) && (dayOfWar > 20)){
+            this.readyForPeace = true;
+            proposePeace(this.atWarWith.get(0));
+        }
+    }
+
+
     public void proposePeace(Nation n2){
         
+        if(n2.readyForPeace == true){ //if both already sustained heavy losses
+            acceptPeace(n2);
+            n2.acceptPeace(this);
+        } else {
+            return; //do nothing, no reaction
+        }
     }
+
+
 
     public void acceptPeace(Nation n2){
 
         atWarWith.remove(n2);
+        readyForPeace = false;
         this.setAtWar(false);
         this.setWarInfo(n2, 0, 0); //reset war info
 
         System.out.println("The war between " + this.getName() + " and " + n2.getName() + " ended");
     }
+
+
 
 
 
