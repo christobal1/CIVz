@@ -47,6 +47,8 @@ public class Nation{
         this.armyEquipmentLevel = 0;
         this.atWar = false;
         this.casualties = 0;
+        this.armyPosition[0] = startX;
+        this.armyPosition[1] = startY;
     }
 
 
@@ -316,27 +318,42 @@ public class Nation{
 
     //To end the war
     public void considerPeace(){
-        
-        int myLosses = this.warInfo[this.getNationID()-1][0];
-        int dayOfWar = this.warInfo[this.getNationID()-1][1];
 
-        if((myLosses > 1000) && (dayOfWar > 20)){
+        if(atWarWith.isEmpty()) return;
+        
+        Nation enemy = atWarWith.get(0);
+
+        double myStrength = this.getArmySize() + this.getTotalPopulation();
+        double enemyStrength = enemy.getArmySize() + enemy.getTotalPopulation();
+
+        if(myStrength < enemyStrength * 0.6){
             this.readyForPeace = true;
-            proposePeace(this.atWarWith.get(0));
+            proposePeace(enemy);
         }
     }
 
 
     //Winner gets returned
-    public Nation proposePeace(Nation n2){
+    public void proposePeace(Nation n2){
+
+        double myStrength = this.getArmySize() + this.getTotalPopulation();
+        double enemyStrength = n2.getArmySize() + n2.getTotalPopulation();
+
+        Nation winner;
+        Nation loser;
         
-        if(n2.readyForPeace == true){ //if both already sustained heavy losses
-            acceptPeace(n2);
-            n2.acceptPeace(this);
-            return n2;
+        if(myStrength > enemyStrength){
+            winner = this;
+            loser = n2;
         } else {
-            return n2;
+            winner = n2;
+            loser = this;
         }
+
+        winner.acceptPeace(loser);
+        loser.acceptPeace(winner);
+
+        System.out.println(winner.getName() + " won the war against " + loser.getName());
     }
 
 

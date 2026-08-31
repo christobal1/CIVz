@@ -88,8 +88,9 @@ public class Field {
 
 
     public void naturalPopulationGrowth(){
-        //setPopulation((int)(getPopulation() * 1.03));
+        
         int population = ((int)Math.round((getPopulation() * 1.003)));
+        
         setPopulation(Math.min(population, 10000));
     }
 

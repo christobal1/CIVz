@@ -68,8 +68,9 @@ public class Logic{
         nationList.add(n);
 
         moveToField(visualWorldMap, startX, startY, n); //Was once: changeFieldOwner method, normally meant for attacking, but here used as setup for startpoint
+        n.moveArmyTo(new Point(startX, startY));
+        
         return n;
-
     }
 
 
@@ -150,6 +151,7 @@ public class Logic{
 public static void makeMove(JButton[][] visualWorldMap, Nation n){
 
     Nation enemy;
+    Graphic.updateHotbarVisual(n);
 
     if(stage == 1){ //stage 1: just free land grabbing
         Point p = searchForField(n, null);
@@ -162,17 +164,26 @@ public static void makeMove(JButton[][] visualWorldMap, Nation n){
             n.considerWar();
         } else { //if at war
 
+            n.considerPeace();
+
+            for(Nation nEnemy: n.atWarWith){
+                int id = nEnemy.getNationID() -1;
+
+                n.warInfo[id][0]++;
+                n.warInfo[id][1]+= n.getCasualties();
+            }
+
             if(n.atWarWith.isEmpty()){
                 return;
             } else {
                 enemy = n.atWarWith.get(0);
             }
 
-            if(n.armyPosition[0] == enemy.armyPosition[0] && n.armyPosition[1] == enemy.armyPosition[1]){
+            if((n.armyPosition[0] == enemy.armyPosition[0]) && (n.armyPosition[1] == enemy.armyPosition[1])){
                 fightForField(n.armyPosition[0], n.armyPosition[1], n);
             }
 
-            if(n.currentPath.isEmpty()){
+            if(n.currentPath == null || n.currentPath.isEmpty()){
                 Point target = searchForField(n, n.atWarWith.get(0));
                 if(target == null) return;
 
@@ -379,8 +390,9 @@ public static void makeMove(JButton[][] visualWorldMap, Nation n){
         loser.truces.put(winner, 20);
 
         loser.removeFieldFromOwned(worldMap[x][y]);
+        loser.lastLostField = new Point(x, y);
         winner.addFieldToOwned(worldMap[x][y]);
-        winner.lastLostField = new Point(x, y);
+        worldMap[x][y].setOwnerNation(winner);
     }
 
 
@@ -626,7 +638,7 @@ public static void makeMove(JButton[][] visualWorldMap, Nation n){
         Nation owner = f.getOwnerNation();
 
         //If lost the field recently
-        if(n.lastLostField == new Point(x, y)){
+        if(n.lastLostField != null && n.lastLostField.equals(new Point(x, y))){
             return Double.NEGATIVE_INFINITY;
         }
 
