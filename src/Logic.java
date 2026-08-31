@@ -36,11 +36,11 @@ public class Logic{
         for(int i=0; i<Main.rounds; i++){ // 2000
             dayCounter++;
 
-            if(i == Math.round(Main.rounds/10)){
+            if(i == Math.round(200)){
                 stage = 2;
             }
 
-            Thread.sleep(50); // 50
+            Thread.sleep(100); // 50
 
             for(int j=0; j<Main.numCols; j++){
                 for(int k=0; k<Main.numRows; k++){
@@ -147,70 +147,47 @@ public class Logic{
 
 
 
+public static void makeMove(JButton[][] visualWorldMap, Nation n){
 
-    //move to other square based on search
-    public static void makeMove(JButton[][] visualWorldMap, Nation n){
-
-        if(stage == 1){ //no wars, just free land grabbing
-            Point p = searchForField(n, null);
-            if(p == null) return;
+    if(stage == 1){
+        Point p = searchForField(n, null);
+        if(p != null){
             moveToField(visualWorldMap, p.x, p.y, n);
+        }
+    } else {
 
-        } else {//stage == 2, war possible
-            
-            if(n.getAtWar() == false){
-                n.considerWar();
+        if(!n.getAtWar()){
+            n.considerWar();
+        } else {
 
-            } else { //if at war:
-                ArrayList <Point> path = new ArrayList<>();//The path which the army will take
-                
-                //If no path for the army currently, create one
-                if(path.isEmpty()){
-                    Point p = searchForField(n, n.atWarWith.get(0));
-                    if(p == null) return;
-                    path = findPath(n, new Point(n.armyPosition[0], n.armyPosition[1]), p);
-                }
-                
-                //Every makeMove() invocation, move the army one step further and remove the first part of the path
-                if(!path.isEmpty()){
-                    n.moveArmyTo(path.get(0));
-                    path.remove(0);
-                }
+            if(n.atWarWith.isEmpty()) return;
 
+            if(n.currentPath.isEmpty()){
+                Point target = searchForField(n, n.atWarWith.get(0));
+                if(target == null) return;
 
-                n.considerPeace();
-                //daysAtWarCounter++;
-                n.setWarInfo(n, dayCounter, n.getCasualties()); //update war info // implement correctly !!!
-                //dayCounter usage here is wrong, because each normal day is counted as a day of war currently
+                n.currentPath = findPath(
+                    n,
+                    new Point(n.armyPosition[0], n.armyPosition[1]),
+                    target
+                );
+            }
+
+            if(!n.currentPath.isEmpty()){
+                Point nextStep = n.currentPath.get(0);
+
+                n.clearPreviousArmyPosition(new Point(n.armyPosition[0], n.armyPosition[1]));
+                n.moveArmyTo(nextStep);
+
+                moveToField(visualWorldMap, nextStep.x, nextStep.y, n);
+
+                n.currentPath.remove(0);
             }
         }
-
-        n.draft();
-
-        Graphic.updateHotbarVisual(n);
-      
-        if(n.lastLostCooldown > 0){
-            n.lastLostCooldown --;
-            if(n.lastLostCooldown == 0){
-                n.lastLostField = null;
-            }
-        }
-
-        //Update truces every time
-        //Reduce, but when 0 then remove Nation from truces HashMap completely
-        Iterator<Map.Entry<Nation, Integer>> it = n.truces.entrySet().iterator();
-        while(it.hasNext()){
-            Map.Entry<Nation, Integer> entry = it.next();
-
-            int newVal = entry.getValue() - 1;
-
-            if(newVal <= 0){
-                it.remove();
-            } else {
-                entry.setValue(newVal);
-            }
-        } 
     }
+
+    n.draft();
+}
 
 
 
@@ -222,7 +199,31 @@ public class Logic{
 
         ArrayList<Point> path = new ArrayList<>();
 
-        for(Field f: n.ownedFields){
+        Point current = start;
+
+        while(!current.equals(end)){
+
+            int x = current.x;
+            int y = current.y;
+    
+            Point north = new Point(x, y+1);
+            Point east = new Point(x+1, y);
+            Point south = new Point(x, y-1);
+            Point west = new Point(x-1, y);
+
+            //Compare Which is closer to end:
+            
+            
+            Point[] dirs = {north, east, south, west};
+            Point best = dirs[0];
+
+            for(int i=1; i<dirs.length; i++){
+                best = whichIsCloserTo(best, dirs[i], end);
+            }
+            
+            
+            path.add(best);
+            current = best;
 
         }
 
@@ -230,10 +231,24 @@ public class Logic{
 
     }
 
+    public static Point whichIsCloserTo(Point a, Point b, Point goal){
+
+        boolean validA = checkFieldLegality(a.x, a.y);
+        boolean validB = checkFieldLegality(b.x, b.y);
+
+        if (!validA && !validB) return a; // fallback (both bad)
+        if (!validA) return b;
+        if (!validB) return a;
+
+        double distA = Math.pow(a.x - goal.x, 2) + Math.pow(a.y - goal.y, 2);
+        double distB = Math.pow(b.x - goal.x, 2) + Math.pow(b.y - goal.y, 2);
+
+        return (distA < distB) ? a : b;
+    }
 
 
+    /** 
     //Universally useable
-    //Used for planArmyMovement()
     public static Point findClosestFieldToAPoint(Nation n, Point p, boolean hasToBeOwnedByN){
     
         Field f1 = worldMap[p.x][p.y];
@@ -277,12 +292,12 @@ public class Logic{
             }
         }
         return closest;
-    }
+    }*/
     
 
 
 
-
+    
 
     //Changes information of one square, kind of like changeOneSquareOnWorldMap
     //Meant for changing of ownership after fight
@@ -298,10 +313,8 @@ public class Logic{
             field.setOwnerNation(newOwner);
             newOwner.addFieldToOwned(field);
             Graphic.changeSquareColor(visualWorldMap, x, y, newOwner.color);
-        }
 
-        //If field has owner
-        if(field.ownerNation != newOwner){
+        } else if (field.ownerNation != newOwner){ //If field has owner
             (field.ownerNation).removeFieldFromOwned(field);
             field.setOwnerNation(newOwner);
             newOwner.addFieldToOwned(field);
@@ -723,13 +736,13 @@ public class Logic{
                     //int randomPop = 61 + (int)(Math.random() * 40); before, was different, had effect on the decisions of the nations. looks off now.
                     int randomPop = ThreadLocalRandom.current().nextInt(61, 101); //pop between 61 and 100
                     double randomMoneyDaily = (double)(Math.random() * 20);
-                    randomMoneyDaily = Math.round((randomMoneyDaily * 100) / 100);
+                    randomMoneyDaily = Math.round((randomMoneyDaily * 100.0) / 100.0);
 
                     String type = "LAND";
 
                     for(int k=0; k<numberOfSeas; k++){
                         if(seaSpawnCoords[k][0] == i && seaSpawnCoords[k][1] == j){
-                            type = "CITY";
+                            type = "SEA";
                         }
                     }
 

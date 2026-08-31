@@ -26,6 +26,7 @@ public class Nation{
     boolean readyForPeace; //for peace propositions, acceptations...
     int casualties; //tracks casualties for Logic.fightForField() and Logic.makeMove()
     int armyPosition[] = new int[2]; //tracks army on worldMap
+    ArrayList<Point> currentPath = new ArrayList<>(); //for Logic.findPath()
 
     ArrayList<Nation> atWarWith = new ArrayList<>();
     HashMap<Nation, Integer> truces = new HashMap<>();
@@ -252,6 +253,10 @@ public class Nation{
         armyPosition[1] = p.y;
 
         Main.visualWorldMap[p.x][p.y].setText("A" + this.getNationID());
+    }
+
+    public static void clearPreviousArmyPosition(Point p){
+        Main.visualWorldMap[p.x][p.y].setText("");
     }
 
 
