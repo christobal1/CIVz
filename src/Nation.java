@@ -322,13 +322,15 @@ public class Nation{
     }
 
 
-    public void proposePeace(Nation n2){
+    //Winner gets returned
+    public Nation proposePeace(Nation n2){
         
         if(n2.readyForPeace == true){ //if both already sustained heavy losses
             acceptPeace(n2);
             n2.acceptPeace(this);
+            return n2;
         } else {
-            return; //do nothing, no reaction
+            return n2;
         }
     }
 

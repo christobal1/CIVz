@@ -32,7 +32,6 @@ public class Logic{
         Nation n3 = createNation(visualWorldMap, 3, "Usbonia", 0, Main.numRows-1, Graphic.pink);
         Nation n4 = createNation(visualWorldMap, 4, "Giantopia", Main.numCols-1, 0, Graphic.green);
 
-        n1.moveArmyTo(new Point(1,2));
 
         for(int i=0; i<Main.rounds; i++){ // 2000
             dayCounter++;
@@ -153,14 +152,32 @@ public class Logic{
     public static void makeMove(JButton[][] visualWorldMap, Nation n){
 
         if(stage == 1){ //no wars, just free land grabbing
-            Point p = searchFreeField(n);
+            Point p = searchForField(n, null);
             if(p == null) return;
             moveToField(visualWorldMap, p.x, p.y, n);
-        } else {
-            //so if: stage == 2, war possible
+
+        } else {//stage == 2, war possible
+            
             if(n.getAtWar() == false){
                 n.considerWar();
+
             } else { //if at war:
+                ArrayList <Point> path = new ArrayList<>();//The path which the army will take
+                
+                //If no path for the army currently, create one
+                if(path.isEmpty()){
+                    Point p = searchForField(n, n.atWarWith.get(0));
+                    if(p == null) return;
+                    path = findPath(n, new Point(n.armyPosition[0], n.armyPosition[1]), p);
+                }
+                
+                //Every makeMove() invocation, move the army one step further and remove the first part of the path
+                if(!path.isEmpty()){
+                    n.moveArmyTo(path.get(0));
+                    path.remove(0);
+                }
+
+
                 n.considerPeace();
                 //daysAtWarCounter++;
                 n.setWarInfo(n, dayCounter, n.getCasualties()); //update war info // implement correctly !!!
@@ -196,13 +213,72 @@ public class Logic{
     }
 
 
-    public static void findPath(Nation n, Point start, Point end, boolean goThroughEnemyTerritory){
 
-        if(goThroughEnemyTerritory == true){
-            Nation enemy = n.atWarWith.get(0);
+
+    //returns the way as an arraylist between two points
+    public static ArrayList<Point> findPath(Nation n, Point start, Point end){
+
+        Field startField = worldMap[start.x][start.y];
+
+        ArrayList<Point> path = new ArrayList<>();
+
+        for(Field f: n.ownedFields){
 
         }
+
+        return path;
+
     }
+
+
+
+    //Universally useable
+    //Used for planArmyMovement()
+    public static Point findClosestFieldToAPoint(Nation n, Point p, boolean hasToBeOwnedByN){
+    
+        Field f1 = worldMap[p.x][p.y];
+
+        Point closest = null;
+        double minDistance = Double.MAX_VALUE;
+
+        int targetX = f1.getFieldCoordX();
+        int targetY = f1.getFieldCoordY();
+
+
+        if(hasToBeOwnedByN){
+            //Only owned fields
+            for(Field f: n.ownedFields){
+                int x = f.getFieldCoordX();
+                int y = f.getFieldCoordY();
+
+                double dist = Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2));
+
+                if(dist < minDistance){
+                    minDistance = dist;
+                    closest = new Point(x, y);
+                }
+            }
+        } else {
+            for(int x=0; x<Main.numCols; x++){
+                for(int y=0; y<Main.numRows; y++){
+                    
+                    Field f = worldMap[x][y];
+
+                    int fx = f.getFieldCoordX();
+                    int fy = f.getFieldCoordY();
+
+                    double dist = Math.sqrt(Math.pow(fx - targetX, 2) + Math.pow(fy - targetY, 2));
+
+                    if(dist < minDistance){
+                        minDistance = dist;
+                        closest = new Point(fx, fy);
+                    }
+                }
+            }
+        }
+        return closest;
+    }
+    
 
 
 
@@ -226,12 +302,10 @@ public class Logic{
 
         //If field has owner
         if(field.ownerNation != newOwner){
-            if(fightForField(x, y, newOwner).equals("successful")){
-                (field.ownerNation).removeFieldFromOwned(field);
-                field.setOwnerNation(newOwner);
-                newOwner.addFieldToOwned(field);
-                Graphic.changeSquareColor(visualWorldMap, x, y, newOwner.color);
-            }
+            (field.ownerNation).removeFieldFromOwned(field);
+            field.setOwnerNation(newOwner);
+            newOwner.addFieldToOwned(field);
+            Graphic.changeSquareColor(visualWorldMap, x, y, newOwner.color);
         }
     }
 
@@ -285,7 +359,7 @@ public class Logic{
 
 
 
-
+    /** 
     //If at war with a nation, n will look for fields of its enemy
     //Build a list of fields that lie to a certain direction of n
     public static Direction searchEnemyFront(Nation n){
@@ -333,9 +407,9 @@ public class Logic{
         }
 
         return Collections.max(dirs.entrySet(), Map.Entry.comparingByValue()).getKey();
-    }
+    }*/
 
-
+    /** 
     //plans out the moves an army makes
     //used by makeMove() after getting the direction of enemy-front from searchEnemyFront()
     public static ArrayList<Point> planArmyMovement(Nation n, Direction dir){
@@ -343,55 +417,31 @@ public class Logic{
         ArrayList <Point> movePlan = new ArrayList<>();
 
         if(dir == Direction.north){
-            Point start = findClosestOwnedFieldToAPoint(n, (new Point(0,0))); //upper left corner
+            Point start = findClosestFieldToAPoint(n, new Point(0,0), true); //upper left corner
             movePlan.add(start);
             //movePlan.add();
 
         } else if (dir == Direction.east){
-            Point start = findClosestOwnedFieldToAPoint(n, new Point(Main.numCols, 0)); //upper right corner
+            Point start = findClosestFieldToAPoint(n, new Point(Main.numCols, 0), true); //upper right corner
             movePlan.add(start);
             //movePlan.add();
 
         } else if (dir == Direction.south){
-            Point start = findClosestOwnedFieldToAPoint(n, new Point(new Point(Main.numCols, Main.numRows))); //lower right corner
+            Point start = findClosestFieldToAPoint(n, new Point(Main.numCols, Main.numRows), true); //lower right corner
             movePlan.add(start);
             //movePlan.add();
 
         } else if (dir == Direction.west){
-            Point start = findClosestOwnedFieldToAPoint(n, new Point(new Point(0, Main.numRows))); //lower left corner
+            Point start = findClosestFieldToAPoint(n, new Point(0, Main.numRows), true); //lower left corner
             movePlan.add(start);
             //movePlan.add();
         }
 
         return movePlan;
-    }
+    }*/
 
     
-    //Universally useable
-    //Used for planArmyMovement()
-    public static Point findClosestOwnedFieldToAPoint(Nation n, Point p){
     
-        Field f1 = worldMap[p.x][p.y];
-
-        Point closest = null;
-        double minDistance = Double.MAX_VALUE;
-
-        int targetX = f1.getFieldCoordX();
-        int targetY = f1.getFieldCoordY();
-
-        for(Field f: n.ownedFields){
-            int x = f.getFieldCoordX();
-            int y = f.getFieldCoordY();
-
-            double dist = Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2));
-
-            if(dist < minDistance){
-                minDistance = dist;
-                closest = new Point(x, y);
-            }
-        }
-        return closest;
-    }
 
 
 
@@ -400,7 +450,7 @@ public class Logic{
     //Put the coordinates of the surrounding fields in a 3d array
     //After that rank them and sort some out according to legality
     //An other method will be invoked for this!
-    public static Point searchFreeField(Nation n){
+    public static Point searchForField(Nation n, Nation hasToBeOwner){
         int sizeOfOwnedArray = (n.ownedFields).size();
         int[][][] potentialNextCoords = new int[sizeOfOwnedArray][4][2];
         int[][][] rankedNextCoords = new int[sizeOfOwnedArray][4][2];
@@ -475,7 +525,7 @@ public class Logic{
                     }
 
                     //Both legal -> compare normally
-                    if(compareFields(n, x1, y1, x2, y2) == 2){
+                    if(compareFields(n, x1, y1, x2, y2, hasToBeOwner) == 2){
                         swap(rankedNextCoords, i, j);
                     }
                 }
@@ -491,7 +541,7 @@ public class Logic{
             if(!checkFieldLegality(x, y) || isOwnField(x, y, n)) continue;
 
             //When score unusable, ignore it
-            double score = evaluateField(n, x, y);
+            double score = evaluateField(n, x, y, hasToBeOwner);
             if(score == Double.NEGATIVE_INFINITY) continue;
 
             if(bestX == -1){
@@ -500,7 +550,7 @@ public class Logic{
                 continue;
             }
 
-            if(compareFields(n, bestX, bestY, x, y) == 2){
+            if(compareFields(n, bestX, bestY, x, y, hasToBeOwner) == 2){
                 bestX = x;
                 bestY = y;
             }
@@ -518,9 +568,9 @@ public class Logic{
 
 
     //1 for first, 2 for second field
-    public static int compareFields(Nation n, int x1, int y1, int x2, int y2){
+    public static int compareFields(Nation n, int x1, int y1, int x2, int y2, Nation hasToBeOwner){
 
-        if(evaluateField(n, x1, y1) > evaluateField(n, x2, y2)){
+        if(evaluateField(n, x1, y1, hasToBeOwner) > evaluateField(n, x2, y2, hasToBeOwner)){
             return 1;
         } else {
             return 2;
@@ -529,8 +579,11 @@ public class Logic{
 
 
     //Gives a field a score, needed in compare fields. Both of the methods are used in searching of next field
-    public static double evaluateField(Nation n, int x, int y){
+    //Useable for peace times when only free landgrabbing happens in stage 1
+    //As well as stage 2, where wars are possible
+    public static double evaluateField(Nation n, int x, int y, Nation hasToBeOwner){
         
+
         double score = 0.0;
 
         Field f = worldMap[x][y];
@@ -544,9 +597,29 @@ public class Logic{
         score += money * 0.5;
         score += pop * 0.2;
 
-        if(f.getOwnerNation() != null && f.getOwnerNation() != n){
-            return Double.NEGATIVE_INFINITY;
+        Nation owner = f.getOwnerNation();
+
+        //Case 1: only free fields
+        if(hasToBeOwner == null){
+            if(owner != null && owner != n){
+                return Double.NEGATIVE_INFINITY;
+            }
+        
+        //Case 2: only enemy fields
+        } else if (n.atWarWith.contains(hasToBeOwner)){
+            if(owner == hasToBeOwner){
+                score += 10000;
+            }
+
+        //Case 3: only own fields
+        } else if (hasToBeOwner == n){
+            if(owner == n){
+                score += 10000;
+            } else {
+                return Double.NEGATIVE_INFINITY;
+            }
         }
+
  
         return score;
         
