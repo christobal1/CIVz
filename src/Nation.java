@@ -12,7 +12,7 @@ public class Nation{
     int startX; //Coordinates of first field, will be given to the Nation in Logic.startGame()
     int startY; 
 
-    Point lastLostField;
+    HashMap<Point, Integer> lastLostFields = new HashMap<>();
     int lastLostCooldown = 0;
 
     int armySize;
@@ -40,7 +40,6 @@ public class Nation{
         this.color = color;
         this.startX = startX;
         this.startY = startY;
-        this.lastLostField = null;
         this.armySize = 0;
         this.bankMoney = 0.0;
         this.preferedArmySize = calculatePreferedArmySize();
@@ -77,10 +76,6 @@ public class Nation{
 
     public int getTechnology(){
         return technologyLevel;
-    }
-
-    public Point getLastLostField(){
-        return lastLostField;
     }
 
     public int getArmySize(){
@@ -130,11 +125,6 @@ public class Nation{
         this.color = newColor;
     }
 
-    public void setLastLostField(Point newlyLostField){
-        this.lastLostField = newlyLostField;
-        this.lastLostCooldown = 5;
-    }
-
     public void setArmySize(int newArmySize){
         int maxArmy = calculatePreferedArmySize();
         this.armySize = Math.max(0, Math.min(newArmySize, maxArmy));
@@ -167,6 +157,33 @@ public class Nation{
 
 
     //Methods
+
+    public void addLostField(Point p){
+        lastLostFields.put(p, 10);
+    }
+
+    public void updateLostFieldsCooldown(){
+        ArrayList<Point> toRemove = new ArrayList<>();
+
+        for(Point p: lastLostFields.keySet()){
+            int cooldown = lastLostFields.get(p) - 1;
+
+            if(cooldown <= 0){
+                toRemove.add(p);
+            } else {
+                lastLostFields.put(p, cooldown);
+            }
+        }
+
+        for(Point p: toRemove){
+            lastLostFields.remove(p);
+        }
+    }
+
+    public boolean isRecentlyLost(Point p){
+        return lastLostFields.containsKey(p);
+    }
+
 
     public void addFieldToOwned(Field f){
         ownedFields.add(f);
@@ -304,12 +321,24 @@ public class Nation{
     }
 
 
+    public boolean isAtWarWith(Nation other){
+        return (other != null && atWarWith.contains(other));
+    }
+
      //Instead of declareWar() and getDeclaredOn() use this method which combines both. Both nations have to call it.
     public void startWarWith(Nation n2){
+
+        if(n2 == null || n2 == this || isAtWarWith(n2)){
+            return;
+        }
 
         atWarWith.add(n2);
         this.setAtWar(true);
         this.setWarInfo(n2, 0, 0); //prepare war info before attacking
+
+        if(!n2.isAtWarWith(this)){
+            n2.startWarWith(this);
+        }
 
         System.out.println("A war started between:" + this.getName() + " and " + n2.getName());
         //...
@@ -319,7 +348,10 @@ public class Nation{
     //To end the war
     public void considerPeace(){
 
-        if(atWarWith.isEmpty()) return;
+        if(atWarWith.isEmpty()){
+            setAtWar(false);
+            return;
+        }
         
         Nation enemy = atWarWith.get(0);
 
@@ -327,14 +359,20 @@ public class Nation{
         double enemyStrength = enemy.getArmySize() + enemy.getTotalPopulation();
 
         if(myStrength < enemyStrength * 0.6){
-            this.readyForPeace = true;
+            readyForPeace = true;
             proposePeace(enemy);
+        } else {
+            readyForPeace = false;
         }
     }
 
 
     //Winner gets returned
     public void proposePeace(Nation n2){
+
+        if(n2 == null || n2 == this || !isAtWarWith(n2)){
+            return;
+        }
 
         double myStrength = this.getArmySize() + this.getTotalPopulation();
         double enemyStrength = n2.getArmySize() + n2.getTotalPopulation();
@@ -353,19 +391,27 @@ public class Nation{
         winner.acceptPeace(loser);
         loser.acceptPeace(winner);
 
-        System.out.println(winner.getName() + " won the war against " + loser.getName());
     }
 
 
 
-    public void acceptPeace(Nation n2){
+    public void acceptPeace(Nation other){
 
-        atWarWith.remove(n2);
+        if(other == null) return;
+
+        atWarWith.remove(other);
+        if(other.atWarWith.contains(this)){
+            other.atWarWith.remove(this);
+        }
+
         readyForPeace = false;
-        this.setAtWar(false);
-        this.setWarInfo(n2, 0, 0); //reset war info
+        this.setAtWar(!atWarWith.isEmpty());
+        other.setAtWar(!other.atWarWith.isEmpty());
 
-        System.out.println("The war between " + this.getName() + " and " + n2.getName() + " ended");
+        this.setWarInfo(other, 0, 0); //reset war info
+        other.setWarInfo(this, 0, 0);
+
+        System.out.println(this.getName() + " made peace with " + other.getName());
     }
 
 

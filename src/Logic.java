@@ -69,7 +69,7 @@ public class Logic{
 
         moveToField(visualWorldMap, startX, startY, n); //Was once: changeFieldOwner method, normally meant for attacking, but here used as setup for startpoint
         n.moveArmyTo(new Point(startX, startY));
-        
+
         return n;
     }
 
@@ -149,6 +149,18 @@ public class Logic{
 
 
 public static void makeMove(JButton[][] visualWorldMap, Nation n){
+
+    n.updateLostFieldsCooldown();
+
+    for (Iterator<Map.Entry<Nation, Integer>> it = n.truces.entrySet().iterator(); it.hasNext();) {
+        Map.Entry<Nation, Integer> entry = it.next();
+        int days = entry.getValue() - 1;
+        if(days <= 0){
+            it.remove();
+        } else {
+            entry.setValue(days);
+        }
+    }
 
     Nation enemy;
     Graphic.updateHotbarVisual(n);
@@ -383,14 +395,13 @@ public static void makeMove(JButton[][] visualWorldMap, Nation n){
         int loserArmy = loser.getArmySize();
         
         System.out.println("... and wins");
-        loser.setLastLostField(new Point(x, y));
         winner.setArmySize((int)Math.max(1, Math.round(winnerArmy - winnerArmyReduction)));
         loser.setArmySize((int)Math.max(1, Math.round(loserArmy - loserArmyReduction))); //attacker loses less army if he wins, extract these method invocations to other method because mountain and city combat will differ even more
         winner.truces.put(loser, 20); //20 days of truce
         loser.truces.put(winner, 20);
 
         loser.removeFieldFromOwned(worldMap[x][y]);
-        loser.lastLostField = new Point(x, y);
+        loser.addLostField((new Point(x, y)));
         winner.addFieldToOwned(worldMap[x][y]);
         worldMap[x][y].setOwnerNation(winner);
     }
@@ -638,8 +649,8 @@ public static void makeMove(JButton[][] visualWorldMap, Nation n){
         Nation owner = f.getOwnerNation();
 
         //If lost the field recently
-        if(n.lastLostField != null && n.lastLostField.equals(new Point(x, y))){
-            return Double.NEGATIVE_INFINITY;
+        if(n.lastLostFields != null && n.lastLostFields.containsKey(new Point(x, y))){
+            score -= 5000;
         }
 
         //Case 1: only free fields
