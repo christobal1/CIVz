@@ -22,13 +22,14 @@ public class Nation{
 
     int technologyLevel; //for war
     int warInfo[][] = new int[Main.numHotBarItems-1][2]; //[] = id of other nation, [][0] = day of war, [][1] = own casualties
+
+    Nation currentEnemy;
     boolean atWar; //whether the nation is at war or not
     boolean readyForPeace; //for peace propositions, acceptations...
     int casualties; //tracks casualties for Logic.fightForField() and Logic.makeMove()
     int armyPosition[] = new int[2]; //tracks army on worldMap
     ArrayList<Point> currentPath = new ArrayList<>(); //for Logic.findPath()
 
-    ArrayList<Nation> atWarWith = new ArrayList<>();
     HashMap<Nation, Integer> truces = new HashMap<>();
     boolean completelySurrendered;
     
@@ -270,6 +271,8 @@ public class Nation{
 
 
     public void moveArmyTo(Point p){
+        clearPreviousArmyPosition(new Point(armyPosition[0], armyPosition[1]));
+
         armyPosition[0] = p.x;
         armyPosition[1] = p.y;
 
@@ -314,108 +317,44 @@ public class Nation{
                     score += 30;
                 }
 
-                if(score > 100){
+                if(score > 120){
                     this.startWarWith(otherN);
-                    otherN.startWarWith(this);
                 }
             }
         }
     }
 
 
-    public boolean isAtWarWith(Nation other){
-        return (other != null && atWarWith.contains(other));
-    }
+
 
      //Instead of declareWar() and getDeclaredOn() use this method which combines both. Both nations have to call it.
-    public void startWarWith(Nation n2){
+    public void startWarWith(Nation enemy){
 
-        if(n2 == null || n2 == this || isAtWarWith(n2)){
-            return;
-        }
+        if(enemy == null || enemy == this) return;
+        if(this.atWar || enemy.atWar) return;
 
-        atWarWith.add(n2);
-        this.setAtWar(true);
-        this.setWarInfo(n2, 0, 0); //prepare war info before attacking
+        this.currentEnemy = enemy;
+        enemy.currentEnemy = this;
 
-        if(!n2.isAtWarWith(this)){
-            n2.startWarWith(this);
-        }
+        this.atWar = true;
+        enemy.atWar = true;
 
-        System.out.println("A war started between:" + this.getName() + " and " + n2.getName());
-        //...
+        System.out.println("War: " + this.name + " vs " + enemy.name);
     }
 
 
-    //To end the war
-    public void considerPeace(){
+    public void endWar(){
+        if(currentEnemy == null) return;
 
-        if(atWarWith.isEmpty()){
-            setAtWar(false);
-            return;
-        }
-        
-        Nation enemy = atWarWith.get(0);
+        Nation enemy = currentEnemy;
 
-        double myStrength = this.getArmySize() + this.getTotalPopulation();
-        double enemyStrength = enemy.getArmySize() + enemy.getTotalPopulation();
+        this.currentEnemy = null;
+        enemy.currentEnemy = null;
 
-        if(myStrength < enemyStrength * 0.6){
-            readyForPeace = true;
-            proposePeace(enemy);
-        } else {
-            readyForPeace = false;
-        }
-    }
+        this.atWar = false;
+        enemy.atWar = false;
 
-
-    //Winner gets returned
-    public void proposePeace(Nation n2){
-
-        if(n2 == null || n2 == this || !isAtWarWith(n2)){
-            return;
-        }
-
-        double myStrength = this.getArmySize() + this.getTotalPopulation();
-        double enemyStrength = n2.getArmySize() + n2.getTotalPopulation();
-
-        Nation winner;
-        Nation loser;
-        
-        if(myStrength > enemyStrength){
-            winner = this;
-            loser = n2;
-        } else {
-            winner = n2;
-            loser = this;
-        }
-
-        winner.acceptPeace(loser);
-        loser.acceptPeace(winner);
-
-    }
-
-
-
-    public void acceptPeace(Nation other){
-
-        if(other == null) return;
-
-        atWarWith.remove(other);
-        if(other.atWarWith.contains(this)){
-            other.atWarWith.remove(this);
-        }
-
-        readyForPeace = false;
-        this.setAtWar(!atWarWith.isEmpty());
-        other.setAtWar(!other.atWarWith.isEmpty());
-
-        this.setWarInfo(other, 0, 0); //reset war info
-        other.setWarInfo(this, 0, 0);
-        this.resetArmyPosition();
-        other.resetArmyPosition();
-
-        System.out.println(this.getName() + " made peace with " + other.getName());
+        System.out.println("Peace " + this.getName() + " & " + enemy.getName());
     }
 
 

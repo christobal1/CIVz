@@ -15,7 +15,7 @@ public class Logic{
     
     //public static Field[][] worldMap = new Field[Main.numCols][Main.numRows];
     public static Field[][] worldMap;
-    
+
     public static ArrayList <Nation> nationList = new ArrayList<>();
     public static int dayCounter = 0; //tracks i from round loop, makes it public
 
@@ -38,7 +38,7 @@ public class Logic{
         for(int i=0; i<Main.rounds; i++){ // 2000
             dayCounter++;
 
-            if(i == Math.round(200)){
+            if(i == Math.round(100)){
                 stage = 2;
             }
 
@@ -152,7 +152,9 @@ public class Logic{
 
     public static void makeMove(JButton[][] visualWorldMap, Nation n){
 
+
         n.updateLostFieldsCooldown();
+        Graphic.updateHotbarVisual(n);
 
         for (Iterator<Map.Entry<Nation, Integer>> it = n.truces.entrySet().iterator(); it.hasNext();) {
             Map.Entry<Nation, Integer> entry = it.next();
@@ -163,15 +165,15 @@ public class Logic{
                 entry.setValue(days);
             }
         }
-
-        Nation enemy;
-        Graphic.updateHotbarVisual(n);
+        
 
         if(stage == 1){ //stage 1: just free land grabbing
             Point p = searchForField(n, null);
             if(p != null){
                 moveToField(visualWorldMap, p.x, p.y, n);
             }
+            
+
         } else {
 
             if(!n.getAtWar() && (n.completelySurrendered == false)){ //if not at war
@@ -179,30 +181,21 @@ public class Logic{
 
             } else { //if at war
 
-                n.considerPeace();
-                if(n.getArmySize() == 1){ //completely surrender
-                    n.surrenderCompletely(); //Nation gets cut up
-                }
+                Nation enemy = n.currentEnemy;
 
-                for(Nation nEnemy: n.atWarWith){
-                    int id = nEnemy.getNationID() -1;
+                int id = enemy.getNationID() -1;
+                n.warInfo[id][0]++;
+                n.warInfo[id][1]+= n.getCasualties();
 
-                    n.warInfo[id][0]++;
-                    n.warInfo[id][1]+= n.getCasualties();
-                }
-
-                if(n.atWarWith.isEmpty()){
-                    return;
-                } else {
-                    enemy = n.atWarWith.get(0);
-                }
-
+                //If own army and enemy army meet
                 if((n.armyPosition[0] == enemy.armyPosition[0]) && (n.armyPosition[1] == enemy.armyPosition[1])){
                     fightForField(n.armyPosition[0], n.armyPosition[1], n);
+                    return;
                 }
 
+                //If no path for army yet
                 if(n.currentPath == null || n.currentPath.isEmpty()){
-                    Point target = searchForField(n, n.atWarWith.get(0));
+                    Point target = searchForField(n, enemy);
                     if(target == null) return;
 
                     n.currentPath = findPath(
@@ -212,6 +205,7 @@ public class Logic{
                     );
                 }
 
+                //Move the army to the goal
                 if(!n.currentPath.isEmpty()){
                     Point nextStep = n.currentPath.get(0);
 
@@ -224,7 +218,6 @@ public class Logic{
                 }
             }
         }
-
         n.draft();
     }
 
@@ -285,55 +278,25 @@ public class Logic{
         return (distA < distB) ? a : b;
     }
 
-
-    /** 
-    //Universally useable
-    public static Point findClosestFieldToAPoint(Nation n, Point p, boolean hasToBeOwnedByN){
-    
-        Field f1 = worldMap[p.x][p.y];
-
+    //short term method fix, implement this with whichIsCloserTo into one single method. 
+    public static Point findClosestOwnedField(Nation n, int x, int y){
         Point closest = null;
-        double minDistance = Double.MAX_VALUE;
 
-        int targetX = f1.getFieldCoordX();
-        int targetY = f1.getFieldCoordY();
+        double minDist = Double.MAX_VALUE;
 
+        for(Field f: n.ownedFields){
+            int fx = f.getFieldCoordX();
+            int fy = f.getFieldCoordY();
 
-        if(hasToBeOwnedByN){
-            //Only owned fields
-            for(Field f: n.ownedFields){
-                int x = f.getFieldCoordX();
-                int y = f.getFieldCoordY();
+            double dist = Math.pow(fx - x, 2) + Math.pow(fy - y, 2);
 
-                double dist = Math.sqrt(Math.pow(x - targetX, 2) + Math.pow(y - targetY, 2));
-
-                if(dist < minDistance){
-                    minDistance = dist;
-                    closest = new Point(x, y);
-                }
-            }
-        } else {
-            for(int x=0; x<Main.numCols; x++){
-                for(int y=0; y<Main.numRows; y++){
-                    
-                    Field f = worldMap[x][y];
-
-                    int fx = f.getFieldCoordX();
-                    int fy = f.getFieldCoordY();
-
-                    double dist = Math.sqrt(Math.pow(fx - targetX, 2) + Math.pow(fy - targetY, 2));
-
-                    if(dist < minDistance){
-                        minDistance = dist;
-                        closest = new Point(fx, fy);
-                    }
-                }
+            if(dist < minDist){
+                minDist = dist;
+                closest = new Point(fx, fy);
             }
         }
         return closest;
-    }*/
-    
-
+    }
 
 
     
@@ -373,8 +336,6 @@ public class Logic{
         int defenderArmy = defender.getArmySize();
 
         System.out.println(attacker.getName() + " attacks " + defender.getName() + " at (" + x + ", " + y + ")");
-        attacker.startWarWith(defender); //do it mututally
-        defender.startWarWith(attacker);
 
         //attacker wins
         if(attackerArmy > defenderArmy){
@@ -410,93 +371,23 @@ public class Logic{
         loser.addLostField((new Point(x, y)));
         winner.addFieldToOwned(worldMap[x][y]);
         worldMap[x][y].setOwnerNation(winner);
+
+        Point retreat = findClosestOwnedField(loser, x, y);
+
+        /**if(retreat != null){
+            //loser.moveArmyTo(retreat);
+            //does not work properly, the armies get captured in another battle often, make it go further maybe. or fix with longer capture periods, maybe make decision, follow army, or avoid army
+            //acoording to how weak my nation is
+            loser.resetArmyPosition();
+
+        } else {
+            loser.resetArmyPosition();
+        }*/
+       
+        loser.resetArmyPosition();
+
+        loser.currentPath.clear();
     }
-
-
-
-    /** 
-    //If at war with a nation, n will look for fields of its enemy
-    //Build a list of fields that lie to a certain direction of n
-    public static Direction searchEnemyFront(Nation n){
-
-        int sizeOfOwnedArray = (n.ownedFields).size();
-        ArrayList<Field> enemyIsNorth = new ArrayList<>();
-        ArrayList<Field> enemyIsEast = new ArrayList<>();
-        ArrayList<Field> enemyIsSouth = new ArrayList<>();
-        ArrayList<Field> enemyIsWest = new ArrayList<>();
-
-        //How many enemy fields are in a certain direction
-        HashMap<Direction, Integer> dirs = new HashMap<>();
-
-        //For every field that n owns, check where the enemy is: N,E,S,W
-        //No need for legality check, because here only owned fields get checked
-        //sea or out of map cant be owned = no risk.
-        for(int i=0; i<sizeOfOwnedArray; i++){
-            Field temp = (n.ownedFields).get(i);
-            int x = temp.getFieldCoordX();
-            int y = temp.getFieldCoordY();
-
-            Field north = worldMap[x][y+1];
-            Field east = worldMap[x+1][y];
-            Field south = worldMap[x][y-1];
-            Field west = worldMap[x-1][y];
-
-            //If the list of enemies of Nation n contains the owner of the neighbor field of n, add it to the list.
-            if((n.atWarWith).contains(north.getOwnerNation())){
-                enemyIsNorth.add(north);
-                dirs.put(Direction.north, enemyIsNorth.size());
-            } else if ((n.atWarWith).contains(east.getOwnerNation())){
-                enemyIsEast.add(east);
-                dirs.put(Direction.east, enemyIsEast.size());
-            } else if ((n.atWarWith).contains(south.getOwnerNation())){
-                enemyIsSouth.add(south);
-                dirs.put(Direction.south, enemyIsSouth.size());
-            } else if ((n.atWarWith).contains(west.getOwnerNation())){
-                enemyIsWest.add(west);
-                dirs.put(Direction.west, enemyIsWest.size());
-            }
-
-            //dirs now contains the direction and how many enemy fields are there
-            //now get where the most fields are:
-            
-        }
-
-        return Collections.max(dirs.entrySet(), Map.Entry.comparingByValue()).getKey();
-    }*/
-
-    /** 
-    //plans out the moves an army makes
-    //used by makeMove() after getting the direction of enemy-front from searchEnemyFront()
-    public static ArrayList<Point> planArmyMovement(Nation n, Direction dir){
-
-        ArrayList <Point> movePlan = new ArrayList<>();
-
-        if(dir == Direction.north){
-            Point start = findClosestFieldToAPoint(n, new Point(0,0), true); //upper left corner
-            movePlan.add(start);
-            //movePlan.add();
-
-        } else if (dir == Direction.east){
-            Point start = findClosestFieldToAPoint(n, new Point(Main.numCols, 0), true); //upper right corner
-            movePlan.add(start);
-            //movePlan.add();
-
-        } else if (dir == Direction.south){
-            Point start = findClosestFieldToAPoint(n, new Point(Main.numCols, Main.numRows), true); //lower right corner
-            movePlan.add(start);
-            //movePlan.add();
-
-        } else if (dir == Direction.west){
-            Point start = findClosestFieldToAPoint(n, new Point(0, Main.numRows), true); //lower left corner
-            movePlan.add(start);
-            //movePlan.add();
-        }
-
-        return movePlan;
-    }*/
-
-    
-    
 
 
 
@@ -666,7 +557,7 @@ public class Logic{
             }
         
         //Case 2: only enemy fields
-        } else if (n.atWarWith.contains(hasToBeOwner)){
+        } else if (n.currentEnemy.equals(hasToBeOwner)){
             if(owner == hasToBeOwner){
                 score += 10000;
             }
@@ -767,13 +658,35 @@ public class Logic{
     //Write a map.txt
     public static void writeMap(){
 
+        //Whether field is sea
+        boolean[][] seaFields = new boolean[Main.numCols][Main.numRows];
+
         //Calculate number of seas and sea spawn coordinates
         int numberOfSeas = (int) Math.round(Math.sqrt(Main.numCols * Main.numRows) / 4);
-        int seaSpawnCoords[][] = new int[numberOfSeas][2];
+        int reach = (int) Math.max(1, Math.sqrt(Main.numCols * Main.numRows) / 12);
+
         for(int i=0; i<numberOfSeas; i++){
-            seaSpawnCoords[i][0] = (int)(Math.random() * Main.numCols);
-            seaSpawnCoords[i][1] = (int)(Math.random() * Main.numRows);
+            int randomX = (int)(Math.random() * Main.numCols);
+            int randomY = (int)(Math.random() * Main.numRows);
+
+            seaFields[randomX][randomY] = true;
+
+            for(int dx = -reach; dx <= reach; dx++){
+                for(int dy = -reach; dy <= reach; dy++){
+
+                    int nx = randomX + dx;
+                    int ny = randomY + dy;
+
+                    //rounding instead of quadratic shape
+                    if(nx >= 0 && ny >= 0 && nx < Main.numCols && ny < Main.numRows){
+                        if(dx * dx + dy * dy <= reach*reach){
+                            seaFields[nx][ny] = true;
+                        }
+                    }
+                }
+            }
         }
+
 
         //Write the map
         try{
@@ -787,13 +700,9 @@ public class Logic{
 
                     String type = "LAND";
 
-                    for(int k=0; k<numberOfSeas; k++){
-                        if(seaSpawnCoords[k][0] == i && seaSpawnCoords[k][1] == j){
-                            type = "SEA";
-                        }
+                    if(seaFields[i][j] == true){
+                        type = "SEA";
                     }
-
-
 
                     if((i == Main.numCols - 1) && (j == Main.numRows - 1)) {
                         myWriter.write(i + " " + j + " " + randomPop + " " + randomMoneyDaily + " " + type);
@@ -808,7 +717,6 @@ public class Logic{
             e.printStackTrace();
         }
     }
-
 
 
 

@@ -86,7 +86,7 @@ public class Graphic{
         frame.setLayout(new BorderLayout());
 
         //HOT BAR ON TOP
-        JPanel hotbar = new JPanel(new GridLayout(1, 5));
+        JPanel hotbar = new JPanel(new GridLayout(1, Main.numHotBarItems));
         
         hotbar.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         

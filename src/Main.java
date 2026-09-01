@@ -43,7 +43,7 @@ public class Main{
 
             Graphic.graphicSetup(numCols, numRows, numHotBarItems, visualWorldMap);
 
-            Logic.writeMap();
+            //Logic.writeMap();
             Logic.completeWorldMapReset(visualWorldMap);
             AudioManagement.playMusic(AudioManagement.backgroundMusic);
 
