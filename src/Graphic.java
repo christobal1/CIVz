@@ -13,8 +13,9 @@ public class Graphic{
     static Color magenta = new Color(121, 0, 191);
     static Color pink = new Color(245, 34, 252);
 
-//?
-    static JLabel[] hotBarArray = new JLabel[Main.numHotBarItems];
+
+    //static JLabel[] hotBarArray = new JLabel[Main.numHotBarItems];
+    static JLabel[] hotBarArray;
 
     public static void menuSetup(Runnable onStart){ //Runnable for starting the Logic through the start button, but still having the overview of it in Main.java
 
@@ -33,11 +34,32 @@ public class Graphic{
             }
         };
 
-
         JButton startButton = new JButton("Start Game");
         startButton.setPreferredSize(new Dimension(10, 40));
         panel.add(startButton, BorderLayout.SOUTH);
+
+        
+
+        
+
+
         startButton.addActionListener(e ->{
+
+            if(Main.debugMode == false){
+
+                String colsInput = JOptionPane.showInputDialog(null, "Columns:", Main.numCols);
+                Main.numCols = Integer.parseInt(colsInput);
+
+                String rowsInput = JOptionPane.showInputDialog(null, "Rows:", Main.numRows);
+                Main.numRows = Integer.parseInt(rowsInput);
+
+                String roundsInput = JOptionPane.showInputDialog(null, "Rounds:", Main.rounds);
+                Main.rounds = Integer.parseInt(roundsInput);
+
+                String hotbarInput = JOptionPane.showInputDialog(null, "Hotbar items:", Main.numHotBarItems);
+                Main.numHotBarItems = Integer.parseInt(hotbarInput);
+            }
+
             frame.dispose(); //closes Menu
             onStart.run(); //runs the content which you can see in Main.java, only if button is pressed
         });
@@ -56,6 +78,8 @@ public class Graphic{
     
     //Basic Interface
     public static void graphicSetup(int numCols, int numRows, int numHotBarItems, JButton[][] visualWorldMap){
+
+        hotBarArray = new JLabel[numHotBarItems];
 
         JFrame frame = new JFrame();
         frame.setSize(1000,625);

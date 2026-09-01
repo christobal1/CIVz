@@ -30,6 +30,7 @@ public class Nation{
 
     ArrayList<Nation> atWarWith = new ArrayList<>();
     HashMap<Nation, Integer> truces = new HashMap<>();
+    boolean completelySurrendered;
     
     
     
@@ -48,6 +49,7 @@ public class Nation{
         this.casualties = 0;
         this.armyPosition[0] = startX;
         this.armyPosition[1] = startY;
+        this.completelySurrendered = false;
     }
 
 
@@ -410,12 +412,29 @@ public class Nation{
 
         this.setWarInfo(other, 0, 0); //reset war info
         other.setWarInfo(this, 0, 0);
+        this.resetArmyPosition();
+        other.resetArmyPosition();
 
         System.out.println(this.getName() + " made peace with " + other.getName());
     }
 
 
 
+    public void surrenderCompletely(){
+
+        completelySurrendered = true;
+
+        for(Field f: ownedFields){
+            f.setOwnerNation(null);
+        }
+    }
+
+
+    public void resetArmyPosition(){
+        clearPreviousArmyPosition(new Point(armyPosition[0], armyPosition[1]));
+
+        moveArmyTo(new Point(startX, startY));
+    }
 
 
 }

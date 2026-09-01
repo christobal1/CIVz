@@ -13,7 +13,9 @@ public class Logic{
     //stage 1: everyone grabs land and no war, stage 2: wars possible
     static int stage = 1;
     
-    public static Field[][] worldMap = new Field[Main.numCols][Main.numRows];
+    //public static Field[][] worldMap = new Field[Main.numCols][Main.numRows];
+    public static Field[][] worldMap;
+    
     public static ArrayList <Nation> nationList = new ArrayList<>();
     public static int dayCounter = 0; //tracks i from round loop, makes it public
 
@@ -36,7 +38,7 @@ public class Logic{
         for(int i=0; i<Main.rounds; i++){ // 2000
             dayCounter++;
 
-            if(i == Math.round(100)){
+            if(i == Math.round(200)){
                 stage = 2;
             }
 
@@ -148,79 +150,83 @@ public class Logic{
 
 
 
-public static void makeMove(JButton[][] visualWorldMap, Nation n){
+    public static void makeMove(JButton[][] visualWorldMap, Nation n){
 
-    n.updateLostFieldsCooldown();
+        n.updateLostFieldsCooldown();
 
-    for (Iterator<Map.Entry<Nation, Integer>> it = n.truces.entrySet().iterator(); it.hasNext();) {
-        Map.Entry<Nation, Integer> entry = it.next();
-        int days = entry.getValue() - 1;
-        if(days <= 0){
-            it.remove();
-        } else {
-            entry.setValue(days);
-        }
-    }
-
-    Nation enemy;
-    Graphic.updateHotbarVisual(n);
-
-    if(stage == 1){ //stage 1: just free land grabbing
-        Point p = searchForField(n, null);
-        if(p != null){
-            moveToField(visualWorldMap, p.x, p.y, n);
-        }
-    } else {
-
-        if(!n.getAtWar()){ //if not at war
-            n.considerWar();
-        } else { //if at war
-
-            n.considerPeace();
-
-            for(Nation nEnemy: n.atWarWith){
-                int id = nEnemy.getNationID() -1;
-
-                n.warInfo[id][0]++;
-                n.warInfo[id][1]+= n.getCasualties();
-            }
-
-            if(n.atWarWith.isEmpty()){
-                return;
+        for (Iterator<Map.Entry<Nation, Integer>> it = n.truces.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<Nation, Integer> entry = it.next();
+            int days = entry.getValue() - 1;
+            if(days <= 0){
+                it.remove();
             } else {
-                enemy = n.atWarWith.get(0);
-            }
-
-            if((n.armyPosition[0] == enemy.armyPosition[0]) && (n.armyPosition[1] == enemy.armyPosition[1])){
-                fightForField(n.armyPosition[0], n.armyPosition[1], n);
-            }
-
-            if(n.currentPath == null || n.currentPath.isEmpty()){
-                Point target = searchForField(n, n.atWarWith.get(0));
-                if(target == null) return;
-
-                n.currentPath = findPath(
-                    n,
-                    new Point(n.armyPosition[0], n.armyPosition[1]),
-                    target
-                );
-            }
-
-            if(!n.currentPath.isEmpty()){
-                Point nextStep = n.currentPath.get(0);
-
-                n.clearPreviousArmyPosition(new Point(n.armyPosition[0], n.armyPosition[1]));
-                n.moveArmyTo(nextStep);
-
-                moveToField(visualWorldMap, nextStep.x, nextStep.y, n);
-
-                n.currentPath.remove(0);
+                entry.setValue(days);
             }
         }
-    }
 
-    n.draft();
-}
+        Nation enemy;
+        Graphic.updateHotbarVisual(n);
+
+        if(stage == 1){ //stage 1: just free land grabbing
+            Point p = searchForField(n, null);
+            if(p != null){
+                moveToField(visualWorldMap, p.x, p.y, n);
+            }
+        } else {
+
+            if(!n.getAtWar() && (n.completelySurrendered == false)){ //if not at war
+                n.considerWar();
+
+            } else { //if at war
+
+                n.considerPeace();
+                if(n.getArmySize() == 1){ //completely surrender
+                    n.surrenderCompletely(); //Nation gets cut up
+                }
+
+                for(Nation nEnemy: n.atWarWith){
+                    int id = nEnemy.getNationID() -1;
+
+                    n.warInfo[id][0]++;
+                    n.warInfo[id][1]+= n.getCasualties();
+                }
+
+                if(n.atWarWith.isEmpty()){
+                    return;
+                } else {
+                    enemy = n.atWarWith.get(0);
+                }
+
+                if((n.armyPosition[0] == enemy.armyPosition[0]) && (n.armyPosition[1] == enemy.armyPosition[1])){
+                    fightForField(n.armyPosition[0], n.armyPosition[1], n);
+                }
+
+                if(n.currentPath == null || n.currentPath.isEmpty()){
+                    Point target = searchForField(n, n.atWarWith.get(0));
+                    if(target == null) return;
+
+                    n.currentPath = findPath(
+                        n,
+                        new Point(n.armyPosition[0], n.armyPosition[1]),
+                        target
+                    );
+                }
+
+                if(!n.currentPath.isEmpty()){
+                    Point nextStep = n.currentPath.get(0);
+
+                    n.clearPreviousArmyPosition(new Point(n.armyPosition[0], n.armyPosition[1]));
+                    n.moveArmyTo(nextStep);
+
+                    moveToField(visualWorldMap, nextStep.x, nextStep.y, n);
+
+                    n.currentPath.remove(0);
+                }
+            }
+        }
+
+        n.draft();
+    }
 
 
 
@@ -397,8 +403,8 @@ public static void makeMove(JButton[][] visualWorldMap, Nation n){
         System.out.println("... and wins");
         winner.setArmySize((int)Math.max(1, Math.round(winnerArmy - winnerArmyReduction)));
         loser.setArmySize((int)Math.max(1, Math.round(loserArmy - loserArmyReduction))); //attacker loses less army if he wins, extract these method invocations to other method because mountain and city combat will differ even more
-        winner.truces.put(loser, 20); //20 days of truce
-        loser.truces.put(winner, 20);
+        winner.truces.put(loser, 30); //20 days of truce
+        loser.truces.put(winner, 30);
 
         loser.removeFieldFromOwned(worldMap[x][y]);
         loser.addLostField((new Point(x, y)));
